@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "map-of-the-heart",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "4337", "--directory", "/Users/femisoetan/Documents/iBuilt/map-of-the-heart"],
+      "port": 4337
+    }
+  ]
+}

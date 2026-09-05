@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Map of the Heart</title>
+<meta name="description" content="Place yourself, place someone you love, and watch the line between you.">
+<meta name="theme-color" content="#f7f6f4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111113" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧭</text></svg>">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="map" aria-label="Map"></div>
+
+<header class="brand" id="brand">
+  <span class="brand__mark" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M12 20.5S3.5 15.2 3.5 9.4A4.9 4.9 0 0 1 12 6.2a4.9 4.9 0 0 1 8.5 3.2c0 5.8-8.5 11.1-8.5 11.1Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+  </span>
+  <span class="brand__name">Map of the Heart</span>
+</header>
+
+<div class="topright">
+  <button class="chip" id="btnTheme" title="Toggle light and dark" aria-label="Toggle light and dark">
+    <svg class="i-sun" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="1.6"/><path d="M12 2.6v2.2M12 19.2v2.2M21.4 12h-2.2M4.8 12H2.6M18.6 5.4l-1.6 1.6M7 17l-1.6 1.6M18.6 18.6 17 17M7 7 5.4 5.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    <svg class="i-moon" viewBox="0 0 24 24" fill="none"><path d="M20 14.4A8.4 8.4 0 0 1 9.6 4a8.4 8.4 0 1 0 10.4 10.4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+  </button>
+  <button class="chip" id="btnShare" title="Copy a link to this map" aria-label="Copy a link to this map">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M10.5 13.5a3.6 3.6 0 0 0 5.4.4l2.6-2.6a3.6 3.6 0 0 0-5.1-5.1l-1.5 1.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13.5 10.5a3.6 3.6 0 0 0-5.4-.4l-2.6 2.6a3.6 3.6 0 0 0 5.1 5.1l1.5-1.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+  </button>
+</div>
+
+<!-- Bottom sheet / side panel -->
+<section class="panel" id="panel" aria-live="polite">
+
+  <!-- STEP: where are you -->
+  <div class="step" id="stepYou">
+    <p class="eyebrow">First</p>
+    <h1 class="title">Where are you?</h1>
+    <div class="searchbox">
+      <svg class="searchbox__icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.4" stroke="currentColor" stroke-width="1.7"/><path d="m16 16 4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      <input id="youSearch" type="text" placeholder="Search a city or place" autocomplete="off" spellcheck="false">
+      <button class="searchbox__locate" id="btnLocate" title="Use my location" aria-label="Use my location">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 3.2v2M12 18.8v2M20.8 12h-2M5.2 12h-2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="12" cy="12" r="5.2" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/></svg>
+      </button>
+    </div>
+    <ul class="results" id="youResults" hidden></ul>
+    <p class="hint">Or tap anywhere on the map.</p>
+  </div>
+
+  <!-- STEP: who do you love -->
+  <div class="step" id="stepThem" hidden>
+    <p class="eyebrow">Now</p>
+    <h1 class="title">Who are you thinking of?</h1>
+    <input id="themName" class="nameinput" type="text" placeholder="Their name" autocomplete="off" maxlength="28">
+    <div class="searchbox">
+      <svg class="searchbox__icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.4" stroke="currentColor" stroke-width="1.7"/><path d="m16 16 4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      <input id="themSearch" type="text" placeholder="Where are they?" autocomplete="off" spellcheck="false">
+    </div>
+    <ul class="results" id="themResults" hidden></ul>
+    <div class="rowbtns">
+      <button class="ghost" id="themCancel" hidden>Cancel</button>
+    </div>
+    <p class="hint">Or tap their place on the map.</p>
+  </div>
+
+  <!-- STEP: the map of connections -->
+  <div class="step" id="stepList" hidden>
+    <div class="home">
+      <span class="home__dot" aria-hidden="true"></span>
+      <div class="home__text">
+        <span class="home__label" id="homeLabel">You</span>
+        <span class="home__sub" id="homeSun"></span>
+      </div>
+      <button class="linkbtn" id="btnMoveHome">Change</button>
+    </div>
+    <ul class="hearts" id="heartsList"></ul>
+    <button class="primary" id="btnAdd">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5.5v13M5.5 12h13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Add someone
+    </button>
+  </div>
+
+</section>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
