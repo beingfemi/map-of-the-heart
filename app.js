@@ -1,9 +1,42 @@
 /* Map of the Heart — a minimal map for the people you love. */
 
 /* ---------------------------------------------------------------- theme */
-const STYLES = {
-  light: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-  dark:  'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
+/* One detailed basemap, recoloured per theme. CARTO's Voyager carries the full
+   OpenMapTiles detail — landcover, water, roads by class, buildings, place names —
+   and its layer ids are predictable enough to repaint into a macOS Maps palette.
+   Repainting beats swapping styles: the theme toggle stays instant and nothing
+   has to be rebuilt afterwards. */
+const BASE_STYLE = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';
+
+const BASEMAP = {
+  light: {
+    land: '#f7f4ef', water: '#a8d4f0', waterShadow: '#93c4e4', waterway: '#a8d4f0',
+    green: [205, 226, 188], park: '#cfe4bd',
+    residential: '#f0ece4', building: '#e8e2d7', buildingTop: '#ede8df',
+    motFill: '#ffd28a', motCase: '#eeb862',
+    trunkFill: '#ffdfae', trunkCase: '#ecc489',
+    priFill: '#ffffff', priCase: '#e3ddd0',
+    secFill: '#ffffff', secCase: '#e6e0d3',
+    minorFill: '#ffffff', minorCase: '#eae4d8',
+    path: '#dbd4c5', rail: '#d2cbbd', aeroway: '#e4ded1',
+    boundaryCountry: '#b6ada0', boundaryState: '#d3ccbf',
+    placeText: '#3d3d42', roadText: '#7a7a80', waterText: '#6d97b8', poiText: '#6a6a70',
+    halo: '#ffffff'
+  },
+  dark: {
+    land: '#17181b', water: '#0e2233', waterShadow: '#0b1b29', waterway: '#12293d',
+    green: [30, 44, 32], park: '#1c2a1e',
+    residential: '#1c1d21', building: '#232529', buildingTop: '#272a2f',
+    motFill: '#4c4234', motCase: '#35302a',
+    trunkFill: '#423a30', trunkCase: '#2f2b26',
+    priFill: '#34373d', priCase: '#232529',
+    secFill: '#303339', secCase: '#212327',
+    minorFill: '#2b2e33', minorCase: '#1e2024',
+    path: '#2c2f34', rail: '#2a2d32', aeroway: '#26292e',
+    boundaryCountry: '#454951', boundaryState: '#33363c',
+    placeText: '#b6bac1', roadText: '#8b9099', waterText: '#5f7f9c', poiText: '#8b9099',
+    halo: '#0d0e10'
+  }
 };
 
 function preferredTheme() {
@@ -168,13 +201,13 @@ function fmtDistance(km) {
 /* ---------------------------------------------------------------- map */
 const map = new maplibregl.Map({
   container: 'map',
-  style: STYLES[theme],
+  style: BASE_STYLE,
   center: [8, 26],
   zoom: 1.4,
   attributionControl: { compact: true },
   dragRotate: false,
   renderWorldCopies: false,   // one Earth, not a tiled wallpaper of them
-  maxZoom: 16
+  maxZoom: 18
 });
 map.touchZoomRotate.disableRotation();
 
@@ -193,6 +226,65 @@ new ResizeObserver(() => {
   refitTimer = setTimeout(() => { if (!userMoved && booted && state.hearts.length) fitTo(allPoints()); }, 180);
 }).observe(document.getElementById('map'));
 addEventListener('orientationchange', () => setTimeout(() => map.resize(), 220));
+
+const base = () => BASEMAP[theme];
+function setPaint(id, prop, val) { try { map.setPaintProperty(id, prop, val); } catch (e) {} }
+
+/* Voyager fades greenery in with zoom by ramping the colour's alpha, so a flat
+   colour would slam it on at world view. Rebuild the ramp in our own hue. */
+function greenRamp(rgb) {
+  const a = o => 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',' + o + ')';
+  return { stops: [[8, a(0.2)], [9, a(0.25)], [11, a(0.35)], [13, a(0.45)], [15, a(0.6)]] };
+}
+
+function applyBasemapPalette() {
+  let layers;
+  try { layers = (map.getStyle() || {}).layers || []; } catch (e) { return false; }
+  if (!layers.length) return false;
+  const c = base();
+
+  layers.forEach(l => {
+    const id = l.id, t = l.type;
+
+    if (t === 'background') return setPaint(id, 'background-color', c.land);
+
+    if (t === 'symbol') {
+      const col = /^place_/.test(id) ? c.placeText
+        : /^watername_/.test(id) ? c.waterText
+        : /^roadname_/.test(id) ? c.roadText
+        : c.poiText;
+      setPaint(id, 'text-color', col);
+      setPaint(id, 'text-halo-color', c.halo);
+      setPaint(id, 'text-halo-width', 1.3);
+      setPaint(id, 'icon-color', col);
+      return;
+    }
+
+    if (id === 'water_shadow') return setPaint(id, 'fill-color', c.waterShadow);
+    if (id === 'water') return setPaint(id, 'fill-color', c.water);
+    if (id === 'waterway') return setPaint(id, 'line-color', c.waterway);
+    if (id === 'landcover' || id === 'landuse') return setPaint(id, 'fill-color', greenRamp(c.green));
+    if (/^park_/.test(id)) return setPaint(id, 'fill-color', c.park);
+    if (id === 'landuse_residential') return setPaint(id, 'fill-color', c.residential);
+    if (id === 'building-top') return setPaint(id, 'fill-color', c.buildingTop);
+    if (id === 'building') return setPaint(id, 'fill-color', c.building);
+    if (/^aeroway/.test(id)) return setPaint(id, t === 'line' ? 'line-color' : 'fill-color', c.aeroway);
+    if (/^boundary_country/.test(id)) return setPaint(id, 'line-color', c.boundaryCountry);
+    if (/^boundary_/.test(id)) return setPaint(id, 'line-color', c.boundaryState);
+
+    if (t !== 'line') return;
+    if (/rail/.test(id)) return setPaint(id, 'line-color', c.rail);
+    if (/_path/.test(id)) return setPaint(id, 'line-color', c.path);
+
+    const casing = /_case/.test(id);
+    const cls = /_mot/.test(id) ? 'mot' : /_trunk/.test(id) ? 'trunk'
+      : /_pri/.test(id) ? 'pri' : /_sec/.test(id) ? 'sec' : 'minor';
+    setPaint(id, 'line-color', c[cls + (casing ? 'Case' : 'Fill')]);
+  });
+
+  document.querySelector('meta[name="theme-color"]:not([media])')?.setAttribute('content', c.land);
+  return true;
+}
 
 const EMPTY = { type: 'FeatureCollection', features: [] };
 
@@ -249,8 +341,10 @@ function repaintTheme() {
 
 /* setStyle drops every custom source and layer, and `style.load` is not
    dependable across style swaps — so watch styledata and rebuild when they're gone. */
+let painted = false;
 function ensureLayers() {
   if (!map.style) return;
+  if (!painted) painted = applyBasemapPalette();
   if (map.getSource('arcs')) { repaintTheme(); return; }
   // isStyleLoaded() can sit false on a perfectly usable map, so just try it
   try { installLayers(); } catch (e) { return; }
@@ -674,8 +768,9 @@ $('btnTheme').addEventListener('click', () => {
   theme = theme === 'dark' ? 'light' : 'dark';
   document.documentElement.dataset.theme = theme;
   localStorage.setItem('moth.theme', theme);
-  map.setStyle(STYLES[theme]);
-  map.once('idle', ensureLayers);
+  // same style, different palette — nothing to reload, nothing to rebuild
+  applyBasemapPalette();
+  repaintTheme();
   syncMarkers();
 });
 
