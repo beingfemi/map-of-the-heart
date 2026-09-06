@@ -8,6 +8,16 @@
    has to be rebuilt afterwards. */
 const BASE_STYLE = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';
 
+/* At world and continental zoom Apple shows the Earth itself — vegetation, desert,
+   snow, and ocean depth — not a flat sheet with borders on it. NASA's Blue Marble
+   shaded relief with bathymetry is that same picture, free and keyless. It carries
+   the globe up to z8; past that the vector sheet takes over and this fades away. */
+const TERRAIN_TILES =
+  'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry' +
+  '/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg';
+const TERRAIN_FADE = ['interpolate', ['linear'], ['zoom'], 5.5, 1, 7.5, 0];
+const SHEET_FADE = ['interpolate', ['linear'], ['zoom'], 5.5, 0, 7.5, 1];
+
 const BASEMAP = {
   light: {
     land: '#f7f4ef', water: '#a8d4f0', waterShadow: '#93c4e4', waterway: '#a8d4f0',
@@ -260,7 +270,7 @@ function setPaint(id, prop, val) { try { map.setPaintProperty(id, prop, val); } 
    colour would slam it on at world view. Rebuild the ramp in our own hue. */
 function greenRamp(rgb) {
   const a = o => 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',' + o + ')';
-  return { stops: [[3, a(0.16)], [5, a(0.2)], [8, a(0.28)], [11, a(0.38)], [13, a(0.48)], [15, a(0.62)]] };
+  return { stops: [[6, a(0)], [7.5, a(0.22)], [9, a(0.3)], [11, a(0.4)], [13, a(0.5)], [15, a(0.64)]] };
 }
 
 /* Voyager holds much of its structure back until you are well zoomed in, but the
@@ -279,7 +289,7 @@ const EARLIER = {
   boundary_county: [7, 24],
   watername_ocean: [0, 6],
   watername_sea: [3, 24],
-  park_national_park: [5, 24],
+  park_national_park: [6, 24],
   landuse_residential: [5, 24]
 };
 
@@ -335,12 +345,39 @@ function applyBasemapPalette() {
     setPaint(id, 'line-color', c[cls + (casing ? 'Case' : 'Fill')]);
   });
 
+  const dark = theme === 'dark';
+  setPaint('terrain', 'raster-brightness-max', dark ? 0.42 : 1);
+  setPaint('terrain', 'raster-saturation', dark ? -0.22 : -0.04);
+  setPaint('terrain', 'raster-contrast', dark ? 0.06 : -0.02);
+  // the flat sheet would hide the terrain, so hold it back until the terrain ends
+  setPaint('water', 'fill-opacity', SHEET_FADE);
+  setPaint('water_shadow', 'fill-opacity', SHEET_FADE);
+
   boostLowZoomDetail();
   document.querySelector('meta[name="theme-color"]:not([media])')?.setAttribute('content', c.land);
   return true;
 }
 
 const EMPTY = { type: 'FeatureCollection', features: [] };
+
+function installTerrain() {
+  if (map.getSource('terrain')) return;
+  map.addSource('terrain', {
+    type: 'raster',
+    tiles: [TERRAIN_TILES],
+    tileSize: 256,
+    maxzoom: 8,
+    attribution: '<a href="https://earthdata.nasa.gov/gibs">NASA EOSDIS GIBS</a>'
+  });
+  // directly above the background, beneath every vector layer
+  const above = (map.getStyle().layers || []).find(l => l.type !== 'background');
+  map.addLayer({
+    id: 'terrain',
+    type: 'raster',
+    source: 'terrain',
+    paint: { 'raster-opacity': TERRAIN_FADE, 'raster-resampling': 'linear' }
+  }, above && above.id);
+}
 
 function installLayers() {
   if (!map.getSource('arcs')) map.addSource('arcs', { type: 'geojson', data: EMPTY });
@@ -404,6 +441,7 @@ function ensureLayers() {
     const proj = map.getProjection && map.getProjection();
     if (!proj || proj.type !== 'globe') map.setProjection({ type: 'globe' });
   } catch (e) {}
+  try { installTerrain(); } catch (e) {}
   if (!painted) painted = applyBasemapPalette();
   if (map.getSource('arcs')) { repaintTheme(); return; }
   // isStyleLoaded() can sit false on a perfectly usable map, so just try it
@@ -669,7 +707,9 @@ function fitTo(coords) {
   // the list carry the rest.
   const floor = Math.max(Math.log2(w / 512), Math.log2(h / 512));
   const cam = map.cameraForBounds(bounds, { padding: pad, maxZoom: 9 });
-  if (state.you && cam && cam.zoom < floor) {
+  let globe = false;
+  try { const pr = map.getProjection(); globe = !!pr && pr.type === 'globe'; } catch (e) {}
+  if (!globe && state.you && cam && cam.zoom < floor) {
     map.easeTo({
       center: [state.you.lng, state.you.lat],
       zoom: floor,
