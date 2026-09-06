@@ -284,8 +284,11 @@ function greenRamp(rgb) {
    as structure — countries, states, major cities, coastal names, parks — forward a
    few levels so a zoomed-out map still says something. */
 const EARLIER = {
-  place_country_1: [1, 7],
-  place_country_2: [2, 10],
+  // On the globe Apple names continents, oceans and a handful of major cities —
+  // country names only arrive once you have zoomed past it. Match that.
+  place_continent: [0, 3.2],
+  place_country_1: [2.6, 7],
+  place_country_2: [3.4, 10],
   place_state: [4, 10],
   place_city_dot_r2: [2, 7],
   place_city_dot_r4: [3, 7],
