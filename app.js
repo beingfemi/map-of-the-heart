@@ -228,7 +228,10 @@ map.scrollZoom.disable();
     if (e.ctrlKey || e.metaKey) {
       const r = canvas.getBoundingClientRect();
       const around = map.unproject([e.clientX - r.left, e.clientY - r.top]);
-      map.easeTo({ zoom: map.getZoom() - e.deltaY * step * 0.012, around, duration: 0 });
+      // a trackpad pinch arrives as many small events, a mouse notch as one big
+      // one — clamp so a single notch cannot leap across zoom levels
+      const dz = Math.max(-0.5, Math.min(0.5, -e.deltaY * step * 0.012));
+      map.easeTo({ zoom: map.getZoom() + dz, around, duration: 0 });
     } else {
       map.panBy([e.deltaX * step, e.deltaY * step], { duration: 0 });
     }
