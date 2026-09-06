@@ -17,11 +17,17 @@ const TERRAIN_TILES =
   '/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg';
 const TERRAIN_FADE = ['interpolate', ['linear'], ['zoom'], 5.5, 1, 7.5, 0];
 const SHEET_FADE = ['interpolate', ['linear'], ['zoom'], 5.5, 0, 7.5, 1];
+/* NASA's ocean is a deep navy; Apple's is a vivid azure. Rather than hide the
+   bathymetry, lay the vector water over it at part strength so the depth
+   structure still reads through Apple's blue. */
+const WATER_TINT = ['interpolate', ['linear'], ['zoom'], 0, 0.58, 5.5, 0.66, 7.5, 1];
 
 const BASEMAP = {
   light: {
-    land: '#f7f4ef', water: '#a8d4f0', waterShadow: '#93c4e4', waterway: '#a8d4f0',
-    green: [205, 226, 188], park: '#cfe4bd',
+    // Water and greenery sampled straight out of the Apple Maps recording:
+    // ocean #099de3, vegetated land #b7e796, arid #e8f3bf, desert #edd4ca.
+    land: '#f6f3ec', water: '#0f9fe0', waterShadow: '#0b8fd0', waterway: '#3ab2e8',
+    green: [183, 231, 150], park: '#b9e79a',
     residential: '#f0ece4', building: '#e8e2d7', buildingTop: '#ede8df',
     motFill: '#ffd28a', motCase: '#eeb862',
     trunkFill: '#ffdfae', trunkCase: '#ecc489',
@@ -34,8 +40,8 @@ const BASEMAP = {
     halo: '#ffffff'
   },
   dark: {
-    land: '#17181b', water: '#0e2233', waterShadow: '#0b1b29', waterway: '#12293d',
-    green: [30, 44, 32], park: '#1c2a1e',
+    land: '#17181b', water: '#0e3350', waterShadow: '#0a2437', waterway: '#154a68',
+    green: [34, 54, 36], park: '#1f3123',
     residential: '#1c1d21', building: '#232529', buildingTop: '#272a2f',
     motFill: '#4c4234', motCase: '#35302a',
     trunkFill: '#423a30', trunkCase: '#2f2b26',
@@ -349,12 +355,12 @@ function applyBasemapPalette() {
   // so lift them: saturate the water, add a little contrast, and raise the black
   // point. Values picked by grading a tile offline against Apple's globe.
   const dark = theme === 'dark';
-  setPaint('terrain', 'raster-saturation', dark ? 0.3 : 0.58);
-  setPaint('terrain', 'raster-contrast', dark ? 0.05 : 0.11);
-  setPaint('terrain', 'raster-brightness-min', dark ? 0.02 : 0.19);
+  setPaint('terrain', 'raster-saturation', dark ? 0.3 : 0.55);
+  setPaint('terrain', 'raster-contrast', dark ? 0.05 : 0.02);
+  setPaint('terrain', 'raster-brightness-min', dark ? 0.02 : 0.3);
   setPaint('terrain', 'raster-brightness-max', dark ? 0.5 : 1);
   // the flat sheet would hide the terrain, so hold it back until the terrain ends
-  setPaint('water', 'fill-opacity', SHEET_FADE);
+  setPaint('water', 'fill-opacity', WATER_TINT);
   setPaint('water_shadow', 'fill-opacity', SHEET_FADE);
 
   boostLowZoomDetail();
