@@ -107,6 +107,37 @@ html, body {
 html[data-theme="dark"] .chip .i-sun { display: none; }
 html[data-theme="dark"] .chip .i-moon { display: block; }
 
+/* ---------- zoom control ---------- */
+.zoomer {
+  position: fixed;
+  right: 18px;
+  bottom: max(46px, calc(env(safe-area-inset-bottom) + 46px));
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 13px;
+  background: var(--surface);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.zoomer button {
+  width: 38px; height: 37px;
+  display: grid; place-items: center;
+  border: 0; padding: 0;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background .18s;
+}
+.zoomer button:hover { background: var(--hairline); }
+.zoomer button:active { background: var(--hairline-strong); }
+.zoomer button svg { width: 17px; height: 17px; }
+.zoomer__rule { width: 22px; height: 1px; background: var(--hairline); }
+
 /* ---------- panel ---------- */
 .panel {
   position: fixed;
@@ -466,6 +497,7 @@ html[data-theme="dark"] .chip .i-moon { display: block; }
   .title { font-size: 20px; }
   .h-remove { opacity: 1; }
   .toast { bottom: auto; top: 74px; }
+  .zoomer { right: 12px; bottom: auto; top: max(62px, calc(env(safe-area-inset-top) + 50px)); }
 }
 
 @media (prefers-reduced-motion: reduce) {

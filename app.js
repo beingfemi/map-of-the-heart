@@ -257,7 +257,34 @@ function setPaint(id, prop, val) { try { map.setPaintProperty(id, prop, val); } 
    colour would slam it on at world view. Rebuild the ramp in our own hue. */
 function greenRamp(rgb) {
   const a = o => 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',' + o + ')';
-  return { stops: [[8, a(0.2)], [9, a(0.25)], [11, a(0.35)], [13, a(0.45)], [15, a(0.6)]] };
+  return { stops: [[3, a(0.16)], [5, a(0.2)], [8, a(0.28)], [11, a(0.38)], [13, a(0.48)], [15, a(0.62)]] };
+}
+
+/* Voyager holds much of its structure back until you are well zoomed in, but the
+   tiles carry that data earlier than the style admits. Bring the layers that read
+   as structure — countries, states, major cities, coastal names, parks — forward a
+   few levels so a zoomed-out map still says something. */
+const EARLIER = {
+  place_country_1: [1, 7],
+  place_country_2: [2, 10],
+  place_state: [4, 10],
+  place_city_dot_r2: [2, 7],
+  place_city_dot_r4: [3, 7],
+  place_city_dot_r7: [5, 7],
+  boundary_country_outline: [2, 24],
+  boundary_state: [3, 24],
+  boundary_county: [7, 24],
+  watername_ocean: [0, 6],
+  watername_sea: [3, 24],
+  park_national_park: [5, 24],
+  landuse_residential: [5, 24]
+};
+
+function boostLowZoomDetail() {
+  Object.keys(EARLIER).forEach(id => {
+    const z = EARLIER[id];
+    try { map.setLayerZoomRange(id, z[0], z[1]); } catch (e) {}
+  });
 }
 
 function applyBasemapPalette() {
@@ -305,6 +332,7 @@ function applyBasemapPalette() {
     setPaint(id, 'line-color', c[cls + (casing ? 'Case' : 'Fill')]);
   });
 
+  boostLowZoomDetail();
   document.querySelector('meta[name="theme-color"]:not([media])')?.setAttribute('content', c.land);
   return true;
 }
