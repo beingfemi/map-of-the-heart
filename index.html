@@ -14,7 +14,7 @@
 
 <div id="map" aria-label="Map"></div>
 
-<header class="brand" id="brand">
+<header class="brand glass" id="brand">
   <span class="brand__mark" aria-hidden="true">
     <svg viewBox="0 0 24 24" fill="none"><path d="M12 20.5S3.5 15.2 3.5 9.4A4.9 4.9 0 0 1 12 6.2a4.9 4.9 0 0 1 8.5 3.2c0 5.8-8.5 11.1-8.5 11.1Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
   </span>
@@ -22,16 +22,16 @@
 </header>
 
 <div class="topright">
-  <button class="chip" id="btnTheme" title="Toggle light and dark" aria-label="Toggle light and dark">
+  <button class="chip glass" id="btnTheme" title="Toggle light and dark" aria-label="Toggle light and dark">
     <svg class="i-sun" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="1.6"/><path d="M12 2.6v2.2M12 19.2v2.2M21.4 12h-2.2M4.8 12H2.6M18.6 5.4l-1.6 1.6M7 17l-1.6 1.6M18.6 18.6 17 17M7 7 5.4 5.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
     <svg class="i-moon" viewBox="0 0 24 24" fill="none"><path d="M20 14.4A8.4 8.4 0 0 1 9.6 4a8.4 8.4 0 1 0 10.4 10.4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
   </button>
-  <button class="chip" id="btnShare" title="Copy a link to this map" aria-label="Copy a link to this map">
+  <button class="chip glass" id="btnShare" title="Copy a link to this map" aria-label="Copy a link to this map">
     <svg viewBox="0 0 24 24" fill="none"><path d="M10.5 13.5a3.6 3.6 0 0 0 5.4.4l2.6-2.6a3.6 3.6 0 0 0-5.1-5.1l-1.5 1.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13.5 10.5a3.6 3.6 0 0 0-5.4-.4l-2.6 2.6a3.6 3.6 0 0 0 5.1 5.1l1.5-1.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
   </button>
 </div>
 
-<div class="zoomer">
+<div class="zoomer glass">
   <button id="btnZoomIn" title="Zoom in" aria-label="Zoom in">
     <svg viewBox="0 0 24 24" fill="none"><path d="M12 5.6v12.8M5.6 12h12.8" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
   </button>
@@ -42,7 +42,7 @@
 </div>
 
 <!-- Bottom sheet / side panel -->
-<section class="panel" id="panel" aria-live="polite">
+<section class="panel glass" id="panel" aria-live="polite">
 
   <!-- STEP: where are you -->
   <div class="step" id="stepYou">
@@ -94,7 +94,7 @@
 
 </section>
 
-<div class="toast" id="toast" role="status"></div>
+<div class="toast glass" id="toast" role="status"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="app.js"></script>

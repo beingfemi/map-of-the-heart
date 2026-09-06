@@ -847,6 +847,25 @@ $('btnShare').addEventListener('click', async () => {
   }
 });
 
+/* ---------------------------------------------------------------- glass */
+/* Liquid Glass carries a specular highlight that moves as the light does. There
+   is no light source in a browser, so the pointer stands in for one: each glass
+   surface tracks where the cursor sits over it and puts the sheen there. */
+{
+  const surfaces = () => document.querySelectorAll('.glass');
+  addEventListener('pointermove', e => {
+    surfaces().forEach(el => {
+      const r = el.getBoundingClientRect();
+      const near = e.clientX > r.left - 90 && e.clientX < r.right + 90 &&
+                   e.clientY > r.top - 90 && e.clientY < r.bottom + 90;
+      el.classList.toggle('lit', near);
+      if (!near) return;
+      el.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%');
+      el.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100).toFixed(1) + '%');
+    });
+  }, { passive: true });
+}
+
 /* ---------------------------------------------------------------- boot */
 /* Booting off `load` means waiting for the first painted frame — which never
    arrives in a background tab, leaving a saved map unrestored. The style being
