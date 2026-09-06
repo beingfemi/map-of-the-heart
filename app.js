@@ -345,10 +345,14 @@ function applyBasemapPalette() {
     setPaint(id, 'line-color', c[cls + (casing ? 'Case' : 'Fill')]);
   });
 
+  // The raw Blue Marble tiles are darker and flatter than the Earth macOS draws,
+  // so lift them: saturate the water, add a little contrast, and raise the black
+  // point. Values picked by grading a tile offline against Apple's globe.
   const dark = theme === 'dark';
-  setPaint('terrain', 'raster-brightness-max', dark ? 0.42 : 1);
-  setPaint('terrain', 'raster-saturation', dark ? -0.22 : -0.04);
-  setPaint('terrain', 'raster-contrast', dark ? 0.06 : -0.02);
+  setPaint('terrain', 'raster-saturation', dark ? 0.3 : 0.58);
+  setPaint('terrain', 'raster-contrast', dark ? 0.05 : 0.11);
+  setPaint('terrain', 'raster-brightness-min', dark ? 0.02 : 0.19);
+  setPaint('terrain', 'raster-brightness-max', dark ? 0.5 : 1);
   // the flat sheet would hide the terrain, so hold it back until the terrain ends
   setPaint('water', 'fill-opacity', SHEET_FADE);
   setPaint('water_shadow', 'fill-opacity', SHEET_FADE);
