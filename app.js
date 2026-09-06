@@ -108,6 +108,34 @@ function greatCircle(a, b, n = 160) {
   return pts;
 }
 
+const wrapLng = l => { const x = ((l + 180) % 360 + 360) % 360; return x - 180; };
+
+/* An unwrapped path can run past ±180. With a single world rendered, that has to
+   become several pieces: cut at each dateline crossing and land the cut exactly on
+   the edge, so the line leaves one side and picks up on the other. */
+function splitWorlds(path) {
+  const worldOf = l => Math.floor((l + 180) / 360);
+  const out = [];
+  let cur = [[wrapLng(path[0][0]), path[0][1]]];
+
+  for (let i = 1; i < path.length; i++) {
+    const a = path[i - 1], b = path[i];
+    const wa = worldOf(a[0]), wb = worldOf(b[0]);
+    if (wa !== wb) {
+      const east = wb > wa;
+      const edge = 360 * (east ? wa : wb) + 180;             // the crossing, unwrapped
+      const t = (b[0] - a[0]) === 0 ? 0 : (edge - a[0]) / (b[0] - a[0]);
+      const lat = a[1] + t * (b[1] - a[1]);
+      cur.push([east ? 180 : -180, lat]);
+      out.push(cur);
+      cur = [[east ? -180 : 180, lat]];
+    }
+    cur.push([wrapLng(b[0]), b[1]]);
+  }
+  out.push(cur);
+  return out.filter(seg => seg.length > 1);
+}
+
 /* is the sun up where they are? (NOAA low-precision solar position) */
 function sunAltitude(lat, lng, when = new Date()) {
   const d = (when.getTime() - Date.UTC(2000, 0, 1, 12)) / 86400000;
@@ -145,7 +173,7 @@ const map = new maplibregl.Map({
   zoom: 1.4,
   attributionControl: { compact: true },
   dragRotate: false,
-  minZoom: -0.5,
+  renderWorldCopies: false,   // one Earth, not a tiled wallpaper of them
   maxZoom: 16
 });
 map.touchZoomRotate.disableRotation();
@@ -304,7 +332,7 @@ function draw(now) {
     const upto = Math.max(2, Math.round(eased * (path.length - 1)) + 1);
     arcFeatures.push({
       type: 'Feature', properties: {},
-      geometry: { type: 'LineString', coordinates: path.slice(0, upto) }
+      geometry: { type: 'MultiLineString', coordinates: splitWorlds(path.slice(0, upto)) }
     });
 
     if (h.p >= 1) {
@@ -317,7 +345,7 @@ function draw(now) {
         const fade = Math.min(1, Math.min(f, 1 - f) * 6);
         pulseFeatures.push({
           type: 'Feature', properties: { o: fade },
-          geometry: { type: 'Point', coordinates: path[idx] }
+          geometry: { type: 'Point', coordinates: [wrapLng(path[idx][0]), path[idx][1]] }
         });
       }
     }
@@ -455,7 +483,9 @@ function allPoints() {
   if (!state.you) return [];
   const pts = [[state.you.lng, state.you.lat]];
   const narrow = map.getContainer().clientWidth < 640;
-  state.hearts.forEach(h => narrow ? pts.push([h.lng, h.lat]) : pts.push(...arcFor(h)));
+  state.hearts.forEach(h => narrow
+    ? pts.push([h.lng, h.lat])
+    : pts.push(...arcFor(h).map(c => [wrapLng(c[0]), c[1]])));
   return pts;
 }
 
@@ -483,7 +513,7 @@ function fitTo(coords) {
   // floor on how far out a tall, narrow screen can zoom. When the span needs more
   // room than that floor allows, no framing exists — centre on home instead and let
   // the list carry the rest.
-  const floor = Math.log2(h / 512);
+  const floor = Math.max(Math.log2(w / 512), Math.log2(h / 512));
   const cam = map.cameraForBounds(bounds, { padding: pad, maxZoom: 9 });
   if (state.you && cam && cam.zoom < floor) {
     map.easeTo({
