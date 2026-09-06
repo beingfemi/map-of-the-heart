@@ -207,7 +207,6 @@ const map = new maplibregl.Map({
   attributionControl: { compact: true },
   dragRotate: false,
   renderWorldCopies: false,   // one Earth, not a tiled wallpaper of them
-  projection: { type: 'globe' },
   maxZoom: 18
 });
 map.touchZoomRotate.disableRotation();
@@ -399,6 +398,12 @@ function repaintTheme() {
 let painted = false;
 function ensureLayers() {
   if (!map.style) return;
+  // the basemap style ships no projection, so ask for the globe ourselves.
+  // getProjection() is undefined until one is set — do not dereference it blindly.
+  try {
+    const proj = map.getProjection && map.getProjection();
+    if (!proj || proj.type !== 'globe') map.setProjection({ type: 'globe' });
+  } catch (e) {}
   if (!painted) painted = applyBasemapPalette();
   if (map.getSource('arcs')) { repaintTheme(); return; }
   // isStyleLoaded() can sit false on a perfectly usable map, so just try it
