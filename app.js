@@ -211,8 +211,31 @@ const map = new maplibregl.Map({
 });
 map.touchZoomRotate.disableRotation();
 
-/* the pane can settle its size after the map is built — keep the canvas honest */
 let userMoved = false;          // once they pan or zoom themselves, we stop re-framing on them
+
+/* macOS Maps interaction: a two-finger scroll moves the map, it does not zoom.
+   Browsers report a trackpad pinch as a wheel event with ctrlKey set, so that
+   is the one gesture that scales. Mice without a pinch keep cmd+scroll and the
+   zoom buttons. */
+map.scrollZoom.disable();
+{
+  const canvas = map.getCanvas();
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    userMoved = true;
+    // wheels report in pixels, lines or pages depending on the device
+    const step = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? canvas.clientHeight : 1;
+    if (e.ctrlKey || e.metaKey) {
+      const r = canvas.getBoundingClientRect();
+      const around = map.unproject([e.clientX - r.left, e.clientY - r.top]);
+      map.easeTo({ zoom: map.getZoom() - e.deltaY * step * 0.012, around, duration: 0 });
+    } else {
+      map.panBy([e.deltaX * step, e.deltaY * step], { duration: 0 });
+    }
+  }, { passive: false });
+}
+
+/* the pane can settle its size after the map is built — keep the canvas honest */
 ['dragstart', 'zoomstart', 'rotatestart'].forEach(ev =>
   map.on(ev, e => { if (e.originalEvent) userMoved = true; })
 );
@@ -723,7 +746,11 @@ wireSearch(youSearch, youResults, place => setYou(place));
 wireSearch(themSearch, themResults, place => addHeart(place, themName.value));
 
 /* ---------------------------------------------------------------- map click */
+let lastClickAt = 0;
 map.on('click', async e => {
+  const now = Date.now();
+  if (now - lastClickAt < 350) return;   // the second half of a double-click
+  lastClickAt = now;
   const p = { lng: e.lngLat.lng, lat: e.lngLat.lat, label: 'Locating…', title: '' };
   if (mode === 'you') {
     setYou(p, false);
@@ -763,6 +790,9 @@ $('btnLocate').addEventListener('click', () => {
     toast('Could not get your location.');
   }, { enableHighAccuracy: false, timeout: 9000, maximumAge: 300000 });
 });
+
+$('btnZoomIn').addEventListener('click', () => { userMoved = true; map.zoomIn({ duration: 260 }); });
+$('btnZoomOut').addEventListener('click', () => { userMoved = true; map.zoomOut({ duration: 260 }); });
 
 $('btnTheme').addEventListener('click', () => {
   theme = theme === 'dark' ? 'light' : 'dark';
