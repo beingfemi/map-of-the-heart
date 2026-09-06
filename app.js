@@ -207,6 +207,7 @@ const map = new maplibregl.Map({
   attributionControl: { compact: true },
   dragRotate: false,
   renderWorldCopies: false,   // one Earth, not a tiled wallpaper of them
+  projection: { type: 'globe' },
   maxZoom: 18
 });
 map.touchZoomRotate.disableRotation();
