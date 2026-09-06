@@ -893,6 +893,28 @@ $('btnShare').addEventListener('click', async () => {
   }
 });
 
+/* ---------------------------------------------------------------- space */
+/* Outside the globe MapLibre leaves the canvas transparent, so whatever sits
+   behind it becomes space. Paint a tiling starfield once and let it show through. */
+function paintSpace() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 512;
+  const g = c.getContext('2d');
+  for (let i = 0; i < 300; i++) {
+    const big = Math.random() > 0.88;
+    const r = big ? Math.random() * 1.0 + 0.85 : Math.random() * 0.65 + 0.22;
+    const a = (big ? Math.random() * 0.4 + 0.5 : Math.random() * 0.4 + 0.16).toFixed(2);
+    g.beginPath();
+    g.arc(Math.random() * 512, Math.random() * 512, r, 0, Math.PI * 2);
+    g.fillStyle = 'rgba(255,255,255,' + a + ')';
+    g.fill();
+  }
+  try {
+    document.getElementById('map').style.backgroundImage = 'url(' + c.toDataURL('image/png') + ')';
+  } catch (e) {}
+}
+paintSpace();
+
 /* ---------------------------------------------------------------- glass */
 /* Liquid Glass carries a specular highlight that moves as the light does. There
    is no light source in a browser, so the pointer stands in for one: each glass
