@@ -15,7 +15,11 @@ const BASE_STYLE = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json
 const TERRAIN_TILES =
   'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry' +
   '/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg';
-const TERRAIN_FADE = ['interpolate', ['linear'], ['zoom'], 5.5, 1, 7.5, 0];
+/* Past z8 the tiles are overzoomed into a soft wash — useless as detail, but
+   exactly right as regional colour. Keep a little under the vector sheet so
+   forest reads green and desert reads tan at city zoom, the way Apple's does. */
+const TERRAIN_FADE = ['interpolate', ['linear'], ['zoom'],
+  0, 1, 5.5, 1, 8, 0.5, 11, 0.34, 14, 0.2];
 const SHEET_FADE = ['interpolate', ['linear'], ['zoom'], 5.5, 0, 7.5, 1];
 /* NASA's ocean is a deep navy; Apple's is a vivid azure. Rather than hide the
    bathymetry, lay the vector water over it at part strength so the depth
@@ -373,6 +377,23 @@ function applyBasemapPalette() {
 
 const EMPTY = { type: 'FeatureCollection', features: [] };
 
+/* Apple's globe carries a soft blue rim. MapLibre draws one in globe mode via the
+   sky, and only around the globe — the rest of the viewport stays transparent, so
+   the starfield behind it survives. */
+function applySky() {
+  try {
+    map.setSky({
+      'sky-color': '#0a1430',
+      'horizon-color': '#9fd4ff',
+      'fog-color': '#d3ebff',
+      'sky-horizon-blend': 0.5,
+      'horizon-fog-blend': 0.5,
+      'fog-ground-blend': 0.3,
+      'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 4, 0.55, 7, 0]
+    });
+  } catch (e) {}
+}
+
 function installTerrain() {
   if (map.getSource('terrain')) return;
   map.addSource('terrain', {
@@ -455,6 +476,7 @@ function ensureLayers() {
     if (!proj || proj.type !== 'globe') map.setProjection({ type: 'globe' });
   } catch (e) {}
   try { installTerrain(); } catch (e) {}
+  applySky();
   if (!painted) painted = applyBasemapPalette();
   if (map.getSource('arcs')) { repaintTheme(); return; }
   // isStyleLoaded() can sit false on a perfectly usable map, so just try it
