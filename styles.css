@@ -71,14 +71,7 @@ html, body {
   overscroll-behavior: none;
 }
 
-/* the globe floats in space: the canvas is transparent around it, so this shows */
-#map {
-  position: fixed;
-  inset: 0;
-  background-color: #05060d;
-  background-repeat: repeat;
-  background-position: center;
-}
+#map { position: fixed; inset: 0; background-color: #f6f3ec; }
 .maplibregl-ctrl-attrib { font-size: 10px; opacity: .55; }
 .maplibregl-ctrl-bottom-left { display: none; }
 
@@ -219,6 +212,15 @@ html[data-theme="dark"] .chip .i-moon { display: block; }
 .zoomer button:active { background: var(--hairline-strong); }
 .zoomer button svg { width: 17px; height: 17px; }
 .zoomer__rule { width: 22px; height: 1px; background: var(--hairline); }
+
+/* the compass only earns its place once the map is off north */
+#btnCompass, .zoomer__rule--compass {
+  display: none;
+}
+#btnCompass.on { display: grid; }
+#btnCompass.on + .zoomer__rule--compass,
+.zoomer__rule--compass:has(+ #btnCompass.on) { display: block; }
+#btnCompass svg { transform: rotate(var(--rot, 0deg)); transition: transform .12s linear; }
 
 /* ---------- panel ---------- */
 .panel {

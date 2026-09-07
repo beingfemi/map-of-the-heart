@@ -11,7 +11,7 @@ const BASE_STYLE = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json
 /* At world and continental zoom Apple shows the Earth itself — vegetation, desert,
    snow, and ocean depth — not a flat sheet with borders on it. NASA's Blue Marble
    shaded relief with bathymetry is that same picture, free and keyless. It carries
-   the globe up to z8; past that the vector sheet takes over and this fades away. */
+   the map up to z8; past that the vector sheet takes over and this thins out. */
 const TERRAIN_TILES =
   'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry' +
   '/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg';
@@ -225,11 +225,10 @@ const map = new maplibregl.Map({
   center: [8, 26],
   zoom: 1.4,
   attributionControl: { compact: true },
-  dragRotate: false,
   renderWorldCopies: false,   // one Earth, not a tiled wallpaper of them
   maxZoom: 18
 });
-map.touchZoomRotate.disableRotation();
+map.touchZoomRotate.enableRotation();
 
 let userMoved = false;          // once they pan or zoom themselves, we stop re-framing on them
 
@@ -275,6 +274,7 @@ addEventListener('orientationchange', () => setTimeout(() => map.resize(), 220))
 
 const base = () => BASEMAP[theme];
 function setPaint(id, prop, val) { try { map.setPaintProperty(id, prop, val); } catch (e) {} }
+function setLayout(id, prop, val) { try { map.setLayoutProperty(id, prop, val); } catch (e) {} }
 
 /* Voyager fades greenery in with zoom by ramping the colour's alpha, so a flat
    colour would slam it on at world view. Rebuild the ramp in our own hue. */
@@ -288,8 +288,8 @@ function greenRamp(rgb) {
    as structure — countries, states, major cities, coastal names, parks — forward a
    few levels so a zoomed-out map still says something. */
 const EARLIER = {
-  // On the globe Apple names continents, oceans and a handful of major cities —
-  // country names only arrive once you have zoomed past it. Match that.
+  // Zoomed right out, name continents, oceans and a handful of major cities;
+  // country names arrive once you have zoomed in a little.
   place_continent: [0, 3.2],
   place_country_1: [2.6, 7],
   place_country_2: [3.4, 10],
@@ -333,6 +333,9 @@ function applyBasemapPalette() {
       setPaint(id, 'text-halo-color', c.halo);
       setPaint(id, 'text-halo-width', 1.3);
       setPaint(id, 'icon-color', col);
+      // the style shouts country, state and continent names in caps
+      setLayout(id, 'text-transform', 'none');
+      if (/^place_(continent|country)/.test(id)) setLayout(id, 'text-letter-spacing', 0.02);
       return;
     }
 
@@ -371,25 +374,28 @@ function applyBasemapPalette() {
   setPaint('water_shadow', 'fill-opacity', SHEET_FADE);
 
   boostLowZoomDetail();
+  applySky();
+  // shows only in the moment before the first tiles paint
+  try { document.getElementById('map').style.backgroundColor = c.land; } catch (e) {}
   document.querySelector('meta[name="theme-color"]:not([media])')?.setAttribute('content', c.land);
   return true;
 }
 
 const EMPTY = { type: 'FeatureCollection', features: [] };
 
-/* Apple's globe carries a soft blue rim. MapLibre draws one in globe mode via the
-   sky, and only around the globe — the rest of the viewport stays transparent, so
-   the starfield behind it survives. */
+/* Rotation also brings tilt, and a tilted map with nothing above the horizon
+   looks unfinished. A plain sky sits there when pitched and is invisible flat. */
 function applySky() {
+  const dark = theme === 'dark';
   try {
     map.setSky({
-      'sky-color': '#0a1430',
-      'horizon-color': '#9fd4ff',
-      'fog-color': '#d3ebff',
-      'sky-horizon-blend': 0.5,
-      'horizon-fog-blend': 0.5,
-      'fog-ground-blend': 0.3,
-      'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 4, 0.55, 7, 0]
+      'sky-color': dark ? '#0d1626' : '#8fc4ee',
+      'horizon-color': dark ? '#1d2b3d' : '#d6ebfb',
+      'fog-color': dark ? '#17181b' : '#eef4f8',
+      'sky-horizon-blend': 0.7,
+      'horizon-fog-blend': 0.6,
+      'fog-ground-blend': 0.1,
+      'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 0, 4, 0.5, 8, 0.7]
     });
   } catch (e) {}
 }
@@ -469,11 +475,11 @@ function repaintTheme() {
 let painted = false;
 function ensureLayers() {
   if (!map.style) return;
-  // the basemap style ships no projection, so ask for the globe ourselves.
-  // getProjection() is undefined until one is set — do not dereference it blindly.
+  // flat world. getProjection() is undefined until one is set, so never
+  // dereference it blindly.
   try {
     const proj = map.getProjection && map.getProjection();
-    if (!proj || proj.type !== 'globe') map.setProjection({ type: 'globe' });
+    if (!proj || proj.type !== 'mercator') map.setProjection({ type: 'mercator' });
   } catch (e) {}
   try { installTerrain(); } catch (e) {}
   applySky();
@@ -742,9 +748,7 @@ function fitTo(coords) {
   // the list carry the rest.
   const floor = Math.max(Math.log2(w / 512), Math.log2(h / 512));
   const cam = map.cameraForBounds(bounds, { padding: pad, maxZoom: 9 });
-  let globe = false;
-  try { const pr = map.getProjection(); globe = !!pr && pr.type === 'globe'; } catch (e) {}
-  if (!globe && state.you && cam && cam.zoom < floor) {
+  if (state.you && cam && cam.zoom < floor) {
     map.easeTo({
       center: [state.you.lng, state.you.lat],
       zoom: floor,
@@ -903,6 +907,21 @@ $('btnLocate').addEventListener('click', () => {
   }, { enableHighAccuracy: false, timeout: 9000, maximumAge: 300000 });
 });
 
+/* Turning the map is only useful if getting back to north is one click away —
+   the compass appears the moment you are off-axis, like the one in Maps. */
+const compassBtn = $('btnCompass');
+function syncCompass() {
+  const b = map.getBearing(), p = map.getPitch();
+  compassBtn.classList.toggle('on', Math.abs(b) > 0.5 || p > 0.5);
+  compassBtn.style.setProperty('--rot', (-b).toFixed(1) + 'deg');
+}
+map.on('rotate', syncCompass);
+map.on('pitch', syncCompass);
+compassBtn.addEventListener('click', () => {
+  userMoved = true;
+  map.easeTo({ bearing: 0, pitch: 0, duration: 420 });
+});
+
 $('btnZoomIn').addEventListener('click', () => { userMoved = true; map.zoomIn({ duration: 260 }); });
 $('btnZoomOut').addEventListener('click', () => { userMoved = true; map.zoomOut({ duration: 260 }); });
 
@@ -927,28 +946,6 @@ $('btnShare').addEventListener('click', async () => {
     toast('Copy this page’s address to share it.');
   }
 });
-
-/* ---------------------------------------------------------------- space */
-/* Outside the globe MapLibre leaves the canvas transparent, so whatever sits
-   behind it becomes space. Paint a tiling starfield once and let it show through. */
-function paintSpace() {
-  const c = document.createElement('canvas');
-  c.width = c.height = 512;
-  const g = c.getContext('2d');
-  for (let i = 0; i < 300; i++) {
-    const big = Math.random() > 0.88;
-    const r = big ? Math.random() * 1.0 + 0.85 : Math.random() * 0.65 + 0.22;
-    const a = (big ? Math.random() * 0.4 + 0.5 : Math.random() * 0.4 + 0.16).toFixed(2);
-    g.beginPath();
-    g.arc(Math.random() * 512, Math.random() * 512, r, 0, Math.PI * 2);
-    g.fillStyle = 'rgba(255,255,255,' + a + ')';
-    g.fill();
-  }
-  try {
-    document.getElementById('map').style.backgroundImage = 'url(' + c.toDataURL('image/png') + ')';
-  } catch (e) {}
-}
-paintSpace();
 
 /* ---------------------------------------------------------------- glass */
 /* Liquid Glass carries a specular highlight that moves as the light does. There
