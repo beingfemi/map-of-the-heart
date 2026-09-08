@@ -8,54 +8,40 @@
    has to be rebuilt afterwards. */
 const BASE_STYLE = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';
 
-/* At world and continental zoom Apple shows the Earth itself — vegetation, desert,
-   snow, and ocean depth — not a flat sheet with borders on it. NASA's Blue Marble
-   shaded relief with bathymetry is that same picture, free and keyless. It carries
-   the map up to z8; past that the vector sheet takes over and this thins out. */
-const TERRAIN_TILES =
-  'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry' +
-  '/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg';
-/* Past z8 the tiles are overzoomed into a soft wash — useless as detail, but
-   exactly right as regional colour. Keep a little under the vector sheet so
-   forest reads green and desert reads tan at city zoom, the way Apple's does. */
-const TERRAIN_FADE = ['interpolate', ['linear'], ['zoom'],
-  0, 1, 5.5, 1, 8, 0.5, 11, 0.34, 14, 0.2];
-const SHEET_FADE = ['interpolate', ['linear'], ['zoom'], 5.5, 0, 7.5, 1];
-/* NASA's ocean is a deep navy; Apple's is a vivid azure. Rather than hide the
-   bathymetry, lay the vector water over it at part strength so the depth
-   structure still reads through Apple's blue. */
-const WATER_TINT = ['interpolate', ['linear'], ['zoom'], 0, 0.58, 5.5, 0.66, 7.5, 1];
 
+/* Ink on paper. Land is left blank, water is the faintest wash, and the drawing
+   is carried by line: a coastline stroked in ink, borders as hairlines, roads
+   barely there. Everything recedes so the arcs and the hearts are what you see. */
 const BASEMAP = {
   light: {
-    // Water and greenery sampled straight out of the Apple Maps recording:
-    // ocean #099de3, vegetated land #b7e796, arid #e8f3bf, desert #edd4ca.
-    land: '#f6f3ec', water: '#0f9fe0', waterShadow: '#0b8fd0', waterway: '#3ab2e8',
-    green: [183, 231, 150], park: '#b9e79a',
-    residential: '#f0ece4', building: '#e8e2d7', buildingTop: '#ede8df',
-    motFill: '#ffd28a', motCase: '#eeb862',
-    trunkFill: '#ffdfae', trunkCase: '#ecc489',
-    priFill: '#ffffff', priCase: '#e3ddd0',
-    secFill: '#ffffff', secCase: '#e6e0d3',
-    minorFill: '#ffffff', minorCase: '#eae4d8',
-    path: '#dbd4c5', rail: '#d2cbbd', aeroway: '#e4ded1',
-    boundaryCountry: '#b6ada0', boundaryState: '#d3ccbf',
-    placeText: '#3d3d42', roadText: '#7a7a80', waterText: '#6d97b8', poiText: '#6a6a70',
-    halo: '#ffffff'
+    land: '#f8f5ee', water: '#e9eff2', waterShadow: '#eef3f5', waterway: '#c2d3dc',
+    coast: '#89a0ad', coastWidth: 0.85,
+    green: [222, 228, 210], park: '#e7ece0',
+    residential: '#f4f1e9', building: '#efebe1', buildingTop: '#f2eee5',
+    motFill: '#ece5d6', motCase: '#ddd4c2',
+    trunkFill: '#eee8da', trunkCase: '#e0d8c7',
+    priFill: '#f1ece1', priCase: '#e4dccd',
+    secFill: '#f3eee4', secCase: '#e7e0d2',
+    minorFill: '#f5f1e8', minorCase: '#ebe5d9',
+    path: '#e0d9cb', rail: '#ded7c9', aeroway: '#eee9dd',
+    boundaryCountry: '#c0b6a6', boundaryState: '#ddd5c7',
+    placeText: '#5f584d', roadText: '#9c948a', waterText: '#8fa4ae', poiText: '#948c82',
+    halo: '#f8f5ee'
   },
   dark: {
-    land: '#17181b', water: '#0e3350', waterShadow: '#0a2437', waterway: '#154a68',
-    green: [34, 54, 36], park: '#1f3123',
-    residential: '#1c1d21', building: '#232529', buildingTop: '#272a2f',
-    motFill: '#4c4234', motCase: '#35302a',
-    trunkFill: '#423a30', trunkCase: '#2f2b26',
-    priFill: '#34373d', priCase: '#232529',
-    secFill: '#303339', secCase: '#212327',
-    minorFill: '#2b2e33', minorCase: '#1e2024',
-    path: '#2c2f34', rail: '#2a2d32', aeroway: '#26292e',
-    boundaryCountry: '#454951', boundaryState: '#33363c',
-    placeText: '#b6bac1', roadText: '#8b9099', waterText: '#5f7f9c', poiText: '#8b9099',
-    halo: '#0d0e10'
+    land: '#141519', water: '#191d23', waterShadow: '#16191f', waterway: '#2b3540',
+    coast: '#55626f', coastWidth: 0.9,
+    green: [26, 30, 28], park: '#1a1f1c',
+    residential: '#181a1e', building: '#1d2025', buildingTop: '#202429',
+    motFill: '#262a30', motCase: '#1c1f24',
+    trunkFill: '#24282e', trunkCase: '#1b1e23',
+    priFill: '#22262b', priCase: '#191c21',
+    secFill: '#202429', secCase: '#181b20',
+    minorFill: '#1e2126', minorCase: '#16191d',
+    path: '#23272c', rail: '#22262b', aeroway: '#1e2126',
+    boundaryCountry: '#3d444d', boundaryState: '#2a2f36',
+    placeText: '#9aa1aa', roadText: '#6e757e', waterText: '#71838f', poiText: '#767d86',
+    halo: '#101216'
   }
 };
 
@@ -293,7 +279,7 @@ const EARLIER = {
   place_continent: [0, 3.2],
   place_country_1: [2.6, 7],
   place_country_2: [3.4, 10],
-  place_state: [4, 10],
+  place_state: [6, 10],
   place_city_dot_r2: [2, 7],
   place_city_dot_r4: [3, 7],
   place_city_dot_r7: [5, 7],
@@ -339,6 +325,7 @@ function applyBasemapPalette() {
       return;
     }
 
+    if (id === 'coastline') { setPaint(id, 'line-color', c.coast); return; }
     if (id === 'water_shadow') return setPaint(id, 'fill-color', c.waterShadow);
     if (id === 'water') return setPaint(id, 'fill-color', c.water);
     if (id === 'waterway') return setPaint(id, 'line-color', c.waterway);
@@ -361,17 +348,17 @@ function applyBasemapPalette() {
     setPaint(id, 'line-color', c[cls + (casing ? 'Case' : 'Fill')]);
   });
 
-  // The raw Blue Marble tiles are darker and flatter than the Earth macOS draws,
-  // so lift them: saturate the water, add a little contrast, and raise the black
-  // point. Values picked by grading a tile offline against Apple's globe.
   const dark = theme === 'dark';
-  setPaint('terrain', 'raster-saturation', dark ? 0.3 : 0.55);
-  setPaint('terrain', 'raster-contrast', dark ? 0.05 : 0.02);
-  setPaint('terrain', 'raster-brightness-min', dark ? 0.02 : 0.3);
-  setPaint('terrain', 'raster-brightness-max', dark ? 0.5 : 1);
-  // the flat sheet would hide the terrain, so hold it back until the terrain ends
-  setPaint('water', 'fill-opacity', WATER_TINT);
-  setPaint('water_shadow', 'fill-opacity', SHEET_FADE);
+
+  // borders as a single fine dashed hairline, not a line plus a halo
+  setLayout('boundary_country_outline', 'visibility', 'none');
+  setPaint('boundary_country_inner', 'line-dasharray', [3, 2.2]);
+  setPaint('boundary_country_inner', 'line-width',
+    ['interpolate', ['linear'], ['zoom'], 1, 0.6, 5, 0.85, 10, 1.1]);
+  setPaint('boundary_state', 'line-dasharray', [2, 2.5]);
+  setPaint('boundary_state', 'line-width', 0.6);
+  // a sketch does not label stadiums and house numbers
+  ['poi_stadium', 'poi_park', 'housenumber'].forEach(id => setLayout(id, 'visibility', 'none'));
 
   boostLowZoomDetail();
   applySky();
@@ -400,22 +387,22 @@ function applySky() {
   } catch (e) {}
 }
 
-function installTerrain() {
-  if (map.getSource('terrain')) return;
-  map.addSource('terrain', {
-    type: 'raster',
-    tiles: [TERRAIN_TILES],
-    tileSize: 256,
-    maxzoom: 8,
-    attribution: '<a href="https://earthdata.nasa.gov/gibs">NASA EOSDIS GIBS</a>'
-  });
-  // directly above the background, beneath every vector layer
-  const above = (map.getStyle().layers || []).find(l => l.type !== 'background');
+/* The line that makes it a drawing. MapLibre will stroke a polygon source as a
+   line layer, so the water polygons give us a coastline for free. */
+function installCoastline() {
+  if (map.getLayer('coastline')) return;
+  const above = (map.getStyle().layers || []).find(l => /^(landcover|landuse|park_|boundary|road|tunnel|bridge|building)/.test(l.id));
   map.addLayer({
-    id: 'terrain',
-    type: 'raster',
-    source: 'terrain',
-    paint: { 'raster-opacity': TERRAIN_FADE, 'raster-resampling': 'linear' }
+    id: 'coastline',
+    type: 'line',
+    source: 'carto',
+    'source-layer': 'water',
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: {
+      'line-color': base().coast,
+      'line-width': ['interpolate', ['linear'], ['zoom'], 0, 0.6, 3, 0.9, 6, 1.1, 10, 1.3, 14, 1.5],
+      'line-opacity': 1
+    }
   }, above && above.id);
 }
 
@@ -481,8 +468,8 @@ function ensureLayers() {
     const proj = map.getProjection && map.getProjection();
     if (!proj || proj.type !== 'mercator') map.setProjection({ type: 'mercator' });
   } catch (e) {}
-  try { installTerrain(); } catch (e) {}
   applySky();
+  try { installCoastline(); } catch (e) {}
   if (!painted) painted = applyBasemapPalette();
   if (map.getSource('arcs')) { repaintTheme(); return; }
   // isStyleLoaded() can sit false on a perfectly usable map, so just try it
@@ -946,6 +933,26 @@ $('btnShare').addEventListener('click', async () => {
     toast('Copy this page’s address to share it.');
   }
 });
+
+/* ---------------------------------------------------------------- paper */
+/* A little tooth, so the map reads as something drawn on a surface rather than
+   a flat fill. Generated once and tiled; far cheaper than shipping a texture. */
+function paintGrain() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const g = c.getContext('2d');
+  const img = g.createImageData(128, 128);
+  for (let i = 0; i < img.data.length; i += 4) {
+    const v = 128 + (Math.random() - 0.5) * 46;
+    img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+    img.data[i + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  try {
+    document.getElementById('grain').style.backgroundImage = 'url(' + c.toDataURL('image/png') + ')';
+  } catch (e) {}
+}
+paintGrain();
 
 /* ---------------------------------------------------------------- glass */
 /* Liquid Glass carries a specular highlight that moves as the light does. There

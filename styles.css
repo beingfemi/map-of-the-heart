@@ -71,7 +71,19 @@ html, body {
   overscroll-behavior: none;
 }
 
-#map { position: fixed; inset: 0; background-color: #f6f3ec; }
+#map { position: fixed; inset: 0; background-color: #f8f5ee; }
+
+/* paper tooth over the map, never over the controls */
+#grain {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-repeat: repeat;
+  opacity: .055;
+  mix-blend-mode: multiply;
+}
+html[data-theme="dark"] #grain { opacity: .05; mix-blend-mode: screen; }
 .maplibregl-ctrl-attrib { font-size: 10px; opacity: .55; }
 .maplibregl-ctrl-bottom-left { display: none; }
 
