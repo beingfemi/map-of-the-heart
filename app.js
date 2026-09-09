@@ -665,13 +665,31 @@ let collapsed = localStorage.getItem('moth.collapsed') === '1';
 
 /* Folded away, the sheet is just the place you are standing and a count. It only
    makes sense once someone is on the map, so it unfolds itself when the list empties. */
+let lastCollapsed = null;
 function applyCollapse() {
   if (!state.hearts.length) collapsed = false;
   panel.classList.toggle('collapsed', collapsed);
+
   const btn = $('btnCollapse');
   btn.hidden = !state.hearts.length;
   btn.setAttribute('aria-expanded', String(!collapsed));
   btn.setAttribute('aria-label', collapsed ? 'Show the list' : 'Collapse the list');
+
+  const wrap = $('listWrap');
+  if (lastCollapsed === collapsed) {
+    // a re-render, not a fold: settle on the end state without replaying it
+    wrap.style.maxHeight = collapsed ? '0px' : '';
+    return;
+  }
+  lastCollapsed = collapsed;
+
+  const full = wrap.scrollHeight;
+  wrap.style.maxHeight = (collapsed ? full : 0) + 'px';
+  requestAnimationFrame(() => {
+    wrap.style.maxHeight = (collapsed ? 0 : full) + 'px';
+    // release the cap once open, so the list can grow and scroll on its own
+    if (!collapsed) setTimeout(() => { if (!collapsed) wrap.style.maxHeight = ''; }, 340);
+  });
 }
 
 function paintBondPicker() {

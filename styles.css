@@ -529,23 +529,21 @@ html[data-theme="dark"] .segmented button.on { box-shadow: 0 1px 3px rgba(0, 0, 
 .disclosure svg { width: 15px; height: 15px; }
 .panel.collapsed .disclosure { transform: rotate(180deg); }
 
-/* grid rows animate where height cannot */
+/* The height is measured and set in JS. A grid 0fr row cannot close here: this
+   sits inside a flex column, which sizes it from its content and leaves the row
+   stretched to that height however small the track is asked to be. */
 .collapsible {
-  display: grid;
-  grid-template-rows: 1fr;
   min-height: 0;
-  transition: grid-template-rows .3s cubic-bezier(.2, .8, .2, 1);
+  overflow: hidden;
+  transition: max-height .3s cubic-bezier(.2, .8, .2, 1), opacity .22s;
 }
 .collapsible__inner {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  overflow: hidden;
 }
-.panel.collapsed .collapsible { grid-template-rows: 0fr; }
+.panel.collapsed .collapsible { opacity: 0; }
 .panel.collapsed .home { padding-bottom: 0; border-bottom: 0; }
-.panel.collapsed .collapsible__inner { opacity: 0; transition: opacity .18s; }
-.collapsible__inner { opacity: 1; transition: opacity .28s .06s; }
 
 @media (prefers-reduced-motion: reduce) {
   .collapsible { transition: none; }
