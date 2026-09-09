@@ -96,12 +96,19 @@
         <span class="home__sub" id="homeSun"></span>
       </div>
       <button class="linkbtn" id="btnMoveHome">Change</button>
+      <button class="disclosure" id="btnCollapse" aria-expanded="true" aria-controls="listWrap" aria-label="Collapse the list">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m7 14.5 5-5 5 5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
     </div>
-    <ul class="hearts" id="heartsList"></ul>
-    <button class="primary" id="btnAdd">
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5.5v13M5.5 12h13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-      Add someone
-    </button>
+    <div class="collapsible" id="listWrap">
+      <div class="collapsible__inner">
+        <ul class="hearts" id="heartsList"></ul>
+        <button class="primary" id="btnAdd">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5.5v13M5.5 12h13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Add someone
+        </button>
+      </div>
+    </div>
   </div>
 
 </section>

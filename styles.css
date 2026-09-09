@@ -254,13 +254,13 @@ html[data-appearance="dark"] #btnTheme .i-moon { display: block; }
   z-index: 6;
   left: 18px;
   bottom: max(18px, env(safe-area-inset-bottom));
-  width: 380px;
+  width: 318px;
   max-height: calc(100vh - 110px);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  padding: 16px;
-  border-radius: 22px;
+  padding: 13px 14px;
+  border-radius: 20px;
   animation: rise .5s cubic-bezier(.2,.8,.2,1) backwards;
   /* its own layer, so blurring a repainting WebGL map underneath cannot drag it */
   backface-visibility: hidden;
@@ -277,9 +277,9 @@ html[data-appearance="dark"] #btnTheme .i-moon { display: block; }
   color: var(--label-3);
 }
 .title {
-  margin: 0 0 16px;
-  font-size: 22px;
-  line-height: 28px;
+  margin: 0 0 13px;
+  font-size: 20px;
+  line-height: 25px;
   font-weight: 600;
   letter-spacing: -.016em;
   color: var(--label);
@@ -429,8 +429,8 @@ html[data-theme="dark"] .segmented button.on { box-shadow: 0 1px 3px rgba(0, 0, 
 /* ---------- buttons ---------- */
 .primary {
   width: 100%;
-  height: 50px;
-  margin-top: 16px;
+  height: 42px;
+  margin-top: 12px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -440,9 +440,9 @@ html[data-theme="dark"] .segmented button.on { box-shadow: 0 1px 3px rgba(0, 0, 
   background: var(--tint);
   color: #fff;
   font: inherit;
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 600;
-  letter-spacing: -.024em;
+  letter-spacing: -.016em;
   cursor: pointer;
   transition: transform .18s cubic-bezier(.2,.8,.2,1), filter .2s;
 }
@@ -483,14 +483,14 @@ html[data-theme="dark"] .segmented button.on { box-shadow: 0 1px 3px rgba(0, 0, 
 .home {
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-height: 44px;
-  padding-bottom: 12px;
+  gap: 9px;
+  min-height: 34px;
+  padding-bottom: 10px;
   border-bottom: .5px solid var(--separator);
 }
 .home__dot {
   flex: none;
-  width: 11px; height: 11px;
+  width: 9px; height: 9px;
   border-radius: 50%;
   background: var(--blue);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 22%, transparent);
@@ -498,19 +498,57 @@ html[data-theme="dark"] .segmented button.on { box-shadow: 0 1px 3px rgba(0, 0, 
 .home__text { flex: 1; min-width: 0; }
 .home__label {
   display: block;
-  font-size: 17px;
-  line-height: 22px;
+  font-size: 15px;
+  line-height: 20px;
   font-weight: 600;
-  letter-spacing: -.024em;
+  letter-spacing: -.016em;
   color: var(--label);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .home__sub {
   display: block;
-  font-size: 13px;
-  line-height: 18px;
-  letter-spacing: -.006em;
-  color: var(--label-2);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--label-3);
+}
+
+/* ---------- collapse ---------- */
+.disclosure {
+  flex: none;
+  width: 24px; height: 24px;
+  display: grid; place-items: center;
+  border: 0; padding: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--label-3);
+  cursor: pointer;
+  transition: color .2s, background .2s, transform .28s cubic-bezier(.2,.8,.2,1);
+}
+.disclosure[hidden] { display: none; }
+.disclosure:hover { color: var(--label); background: var(--fill-3); }
+.disclosure svg { width: 15px; height: 15px; }
+.panel.collapsed .disclosure { transform: rotate(180deg); }
+
+/* grid rows animate where height cannot */
+.collapsible {
+  display: grid;
+  grid-template-rows: 1fr;
+  min-height: 0;
+  transition: grid-template-rows .3s cubic-bezier(.2, .8, .2, 1);
+}
+.collapsible__inner {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.panel.collapsed .collapsible { grid-template-rows: 0fr; }
+.panel.collapsed .home { padding-bottom: 0; border-bottom: 0; }
+.panel.collapsed .collapsible__inner { opacity: 0; transition: opacity .18s; }
+.collapsible__inner { opacity: 1; transition: opacity .28s .06s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .collapsible { transition: none; }
 }
 
 /* ---------- hearts list ---------- */
@@ -529,17 +567,17 @@ html[data-theme="dark"] .segmented button.on { box-shadow: 0 1px 3px rgba(0, 0, 
 .hearts li {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   position: relative;
-  min-height: 44px;
-  padding: 11px 0;
+  min-height: 38px;
+  padding: 8px 0;
   cursor: pointer;
   animation: rise .4s cubic-bezier(.2,.8,.2,1) backwards;
 }
 .hearts li::after {
   content: "";
   position: absolute;
-  left: 38px; right: 0; bottom: 0;
+  left: 30px; right: 0; bottom: 0;
   height: .5px;
   background: var(--separator);
 }
@@ -547,60 +585,42 @@ html[data-theme="dark"] .segmented button.on { box-shadow: 0 1px 3px rgba(0, 0, 
 .hearts li:hover { background: var(--fill-3); border-radius: 10px; }
 .h-icon {
   flex: none;
-  width: 26px; height: 26px;
+  width: 20px; height: 20px;
   display: grid; place-items: center;
   border-radius: 50%;
   background: var(--fill-3);
   color: var(--label-2);
 }
-.h-icon svg { width: 13px; height: 13px; }
+.h-icon svg { width: 11px; height: 11px; }
 .h-icon { transition: background .2s, color .2s; }
 .h-icon:hover { filter: brightness(.92); }
 .h-body { flex: 1; min-width: 0; }
 .h-name {
   display: block;
-  font-size: 17px;
-  line-height: 22px;
+  font-size: 15px;
+  line-height: 20px;
   font-weight: 600;
-  letter-spacing: -.024em;
+  letter-spacing: -.016em;
   color: var(--label);
   transition: color .2s;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .h-meta {
   display: block;
-  font-size: 15px;
-  line-height: 20px;
-  letter-spacing: -.016em;
+  font-size: 12.5px;
+  line-height: 17px;
   color: var(--label-2);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.h-sky {
-  display: block;
-  font-size: 13px;
-  line-height: 18px;
-  letter-spacing: -.006em;
-  color: var(--label-3);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .h-dist {
   flex: none;
-  align-self: flex-start;
-  padding-top: 1px;
   text-align: right;
-  font-size: 13px;
-  line-height: 18px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 590;
+  letter-spacing: -.012em;
   font-variant-numeric: tabular-nums;
   color: var(--label-2);
-}
-.h-dist b {
-  display: block;
-  font-size: 17px;
-  line-height: 22px;
-  font-weight: 600;
-  letter-spacing: -.024em;
-  font-variant-numeric: tabular-nums;
-  color: var(--label);
 }
 .h-remove {
   flex: none;

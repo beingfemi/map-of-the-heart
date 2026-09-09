@@ -214,6 +214,8 @@ function sunAltitude(lat, lng, when = new Date()) {
     Math.sin(rad(lat)) * Math.sin(dec) + Math.cos(rad(lat)) * Math.cos(dec) * Math.cos(ha)
   ));
 }
+const skyGlyph = (lat, lng) => sunAltitude(lat, lng) > -0.83 ? '☀︎' : '☾';
+
 function skyWord(lat, lng, full) {
   const alt = sunAltitude(lat, lng);
   const w = alt > 6 ? '☀︎ daylight' : alt > -0.83 ? '☀︎ golden hour' : alt > -6 ? '☾ twilight' : '☾ night';
@@ -659,6 +661,18 @@ const toastEl = $('toast'), panel = $('panel');
 
 let mode = 'you';           // 'you' | 'them' | 'list'
 let pendingBond = DEFAULT_BOND;
+let collapsed = localStorage.getItem('moth.collapsed') === '1';
+
+/* Folded away, the sheet is just the place you are standing and a count. It only
+   makes sense once someone is on the map, so it unfolds itself when the list empties. */
+function applyCollapse() {
+  if (!state.hearts.length) collapsed = false;
+  panel.classList.toggle('collapsed', collapsed);
+  const btn = $('btnCollapse');
+  btn.hidden = !state.hearts.length;
+  btn.setAttribute('aria-expanded', String(!collapsed));
+  btn.setAttribute('aria-label', collapsed ? 'Show the list' : 'Collapse the list');
+}
 
 function paintBondPicker() {
   const box = $('bondPicker');
@@ -704,7 +718,9 @@ function render() {
 
   if (state.you) {
     homeLabel.textContent = state.you.label;
-    homeSun.textContent = skyWord(state.you.lat, state.you.lng, true);
+    homeSun.textContent = collapsed && state.hearts.length
+      ? state.hearts.length + (state.hearts.length === 1 ? ' person' : ' people')
+      : skyWord(state.you.lat, state.you.lng, true);
   }
 
   heartsList.innerHTML = '';
@@ -715,14 +731,14 @@ function render() {
     li.style.animationDelay = (i * 45) + 'ms';
     li.innerHTML =
       '<span class="h-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-8.5-5.3-8.5-11.1A4.9 4.9 0 0 1 12 6.6a4.9 4.9 0 0 1 8.5 3.3C20.5 15.7 12 21 12 21Z"/></svg></span>' +
-      '<span class="h-body"><span class="h-name"></span><span class="h-meta"></span><span class="h-sky"></span></span>' +
-      '<span class="h-dist"><b></b>' + d.mi + '</span>' +
+      '<span class="h-body"><span class="h-name"></span><span class="h-meta"></span></span>' +
+      '<span class="h-dist"></span>' +
       '<button class="h-remove" title="Remove" aria-label="Remove"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>';
     li.querySelector('.h-name').textContent = h.name || h.label;
-    li.querySelector('.h-meta').textContent = h.label;
-    li.querySelector('.h-sky').textContent =
-      compass(bearing([state.you.lng, state.you.lat], [h.lng, h.lat])) + ' · ' + skyWord(h.lat, h.lng);
-    li.querySelector('.h-dist b').textContent = d.km;
+    li.querySelector('.h-meta').textContent = h.label + ' · ' + skyGlyph(h.lat, h.lng);
+    const dist = li.querySelector('.h-dist');
+    dist.textContent = d.km;
+    dist.title = d.mi + ' · ' + compass(bearing([state.you.lng, state.you.lat], [h.lng, h.lat]));
     const icon = li.querySelector('.h-icon');
     const b = bondOf(h);
     icon.style.color = b[theme];
@@ -745,6 +761,7 @@ function render() {
     heartsList.appendChild(li);
   });
 
+  applyCollapse();
   save();
   kick();
   draw(performance.now());
@@ -951,7 +968,14 @@ $('btnAdd').addEventListener('click', () => {
   setMode('them');
 });
 $('themCancel').addEventListener('click', () => { if (state.hearts.length) setMode('list'); });
-$('btnMoveHome').addEventListener('click', () => { youSearch.value = ''; setMode('you'); });
+$('btnMoveHome').addEventListener('click', e => { e.stopPropagation(); youSearch.value = ''; setMode('you'); });
+
+$('btnCollapse').addEventListener('click', e => {
+  e.stopPropagation();
+  collapsed = !collapsed;
+  localStorage.setItem('moth.collapsed', collapsed ? '1' : '0');
+  render();
+});
 
 $('btnLocate').addEventListener('click', () => {
   const btn = $('btnLocate');
