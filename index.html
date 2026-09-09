@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#f7f4ef">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧭</text></svg>">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css">
-<link rel="stylesheet" href="styles.css?v=4">
+<link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
 
@@ -89,17 +89,24 @@
 
   <!-- STEP: the map of connections -->
   <div class="step" id="stepList" hidden>
-    <button class="grabber" id="btnCollapse" aria-expanded="true" aria-controls="listWrap" aria-label="Collapse the list"><span></span></button>
-    <div class="sheet-head">
-      <h2 class="sheet-title">People</h2>
-      <span class="sheet-count" id="sheetCount"></span>
-      <button class="round-add" id="btnAdd" aria-label="Add someone">
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5.6v12.8M5.6 12h12.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <div class="home">
+      <span class="home__dot" aria-hidden="true"></span>
+      <div class="home__text">
+        <span class="home__label" id="homeLabel">You</span>
+        <span class="home__sub" id="homeSun"></span>
+      </div>
+      <button class="linkbtn" id="btnMoveHome">Change</button>
+      <button class="disclosure" id="btnCollapse" aria-expanded="true" aria-controls="listWrap" aria-label="Collapse the list">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m7 14.5 5-5 5 5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
     </div>
     <div class="collapsible" id="listWrap">
       <div class="collapsible__inner">
         <ul class="hearts" id="heartsList"></ul>
+        <button class="primary" id="btnAdd">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5.5v13M5.5 12h13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Add someone
+        </button>
       </div>
     </div>
   </div>
@@ -109,6 +116,6 @@
 <div class="toast glass" id="toast" role="status"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
-<script src="app.js?v=4"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>

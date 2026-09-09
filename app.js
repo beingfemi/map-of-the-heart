@@ -620,6 +620,30 @@ function kick() {
 /* ---------------------------------------------------------------- geocoding */
 const NOMINATIM = 'https://nominatim.openstreetmap.org';
 
+/* "Etobicoke, Toronto, Golden Horseshoe, Ontario, Canada" is a label no row can
+   hold. Nominatim's address parts carry an ISO subdivision code — CA-ON, CA-SK —
+   so name the place and abbreviate what follows it. Countries that do not
+   conventionally shorten their subdivisions get the country code instead, which
+   reads better than "Lagos, LA". */
+const REGION_CODED = ['us', 'ca', 'au', 'mx', 'br', 'in', 'my', 'ar'];
+
+function shortPlace(addr, fallback) {
+  const a = addr || {};
+  const primary = a.city || a.town || a.village || a.municipality || a.hamlet ||
+                  a.suburb || a.county || a.state || a.country || fallback[0];
+  if (!primary) return fallback.slice(0, 2).join(', ');
+
+  const cc = (a.country_code || '').toLowerCase();
+  const iso = a['ISO3166-2-lvl4'] || a['ISO3166-2-lvl6'] || '';
+  const region = REGION_CODED.indexOf(cc) >= 0 && iso.indexOf('-') > 0
+    ? iso.split('-').pop()
+    : cc.toUpperCase();
+
+  return region && region.toLowerCase() !== primary.toLowerCase()
+    ? primary + ', ' + region
+    : primary;
+}
+
 async function geocode(q) {
   const url = NOMINATIM + '/search?format=jsonv2&limit=6&addressdetails=1&q=' + encodeURIComponent(q);
   const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
@@ -632,20 +656,20 @@ async function geocode(q) {
       lat: parseFloat(d.lat),
       title: parts[0],
       sub: parts.slice(1).join(', '),
-      label: parts.slice(0, 2).join(', ') || parts[0]
+      label: shortPlace(d.address, parts)
     };
   });
 }
 
 async function reverse(lng, lat) {
   try {
-    const url = NOMINATIM + '/reverse?format=jsonv2&zoom=10&lat=' + lat + '&lon=' + lng;
+    const url = NOMINATIM + '/reverse?format=jsonv2&addressdetails=1&zoom=10&lat=' + lat + '&lon=' + lng;
     const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
     if (!res.ok) throw 0;
     const d = await res.json();
     const parts = (d.display_name || '').split(',').map(s => s.trim()).filter(Boolean);
     if (!parts.length) throw 0;
-    return parts.slice(0, 2).join(', ');
+    return shortPlace(d.address, parts);
   } catch (e) {
     return lat.toFixed(2) + '°, ' + lng.toFixed(2) + '°';
   }
@@ -656,12 +680,31 @@ const $ = id => document.getElementById(id);
 const stepYou = $('stepYou'), stepThem = $('stepThem'), stepList = $('stepList');
 const youSearch = $('youSearch'), youResults = $('youResults');
 const themName = $('themName'), themSearch = $('themSearch'), themResults = $('themResults');
-const heartsList = $('heartsList'), sheetCount = $('sheetCount');
+const heartsList = $('heartsList'), homeLabel = $('homeLabel'), homeSun = $('homeSun');
 const toastEl = $('toast'), panel = $('panel');
 
 let mode = 'you';           // 'you' | 'them' | 'list'
 let pendingBond = DEFAULT_BOND;
 let collapsed = localStorage.getItem('moth.collapsed') === '1';
+let confirmingId = null;    // the row currently asking whether you meant it
+let confirmTimer;
+
+function askToRemove(id) {
+  clearTimeout(confirmTimer);
+  confirmingId = id;
+  render();
+  confirmTimer = setTimeout(() => {
+    if (confirmingId === null) return;
+    confirmingId = null;
+    render();
+  }, 4000);
+}
+function cancelRemove() {
+  if (confirmingId === null) return;
+  clearTimeout(confirmTimer);
+  confirmingId = null;
+  render();
+}
 
 /* Folded away, the sheet is just the place you are standing and a count. It only
    makes sense once someone is on the map, so it unfolds itself when the list empties. */
@@ -738,39 +781,21 @@ function render() {
   syncMarkers();
   state.hearts.forEach(h => { h._path = null; });
 
-  sheetCount.textContent = collapsed && state.hearts.length
-    ? state.hearts.length + (state.hearts.length === 1 ? ' person' : ' people')
-    : '';
+  if (state.you) {
+    homeLabel.textContent = state.you.label;
+    homeSun.textContent = collapsed && state.hearts.length
+      ? state.hearts.length + (state.hearts.length === 1 ? ' person' : ' people')
+      : skyWord(state.you.lat, state.you.lng, true);
+  }
 
   heartsList.innerHTML = '';
-
-  // you sit at the top of your own list, the way Find My puts Me there
-  if (state.you) {
-    const me = document.createElement('li');
-    me.className = 'you';
-    me.innerHTML =
-      '<span class="h-icon" aria-hidden="true"></span>' +
-      '<span class="h-body"><span class="h-name">You</span><span class="h-meta"></span></span>' +
-      '<button class="linkbtn" id="btnMoveHome">Change</button>';
-    me.querySelector('.h-meta').textContent =
-      state.you.label + ' · ' + skyGlyph(state.you.lat, state.you.lng);
-    me.querySelector('#btnMoveHome').addEventListener('click', e => {
-      e.stopPropagation();
-      youSearch.value = '';
-      setMode('you');
-    });
-    me.addEventListener('click', () => map.easeTo({
-      center: [state.you.lng, state.you.lat], duration: 900, essential: true
-    }));
-    heartsList.appendChild(me);
-  }
   state.hearts.forEach((h, i) => {
     const km = distanceKm([state.you.lng, state.you.lat], [h.lng, h.lat]);
     const d = fmtDistance(km);
     const li = document.createElement('li');
     li.style.animationDelay = (i * 45) + 'ms';
     li.innerHTML =
-      '<span class="h-icon" aria-hidden="true"></span>' +
+      '<span class="h-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-8.5-5.3-8.5-11.1A4.9 4.9 0 0 1 12 6.6a4.9 4.9 0 0 1 8.5 3.3C20.5 15.7 12 21 12 21Z"/></svg></span>' +
       '<span class="h-body"><span class="h-name"></span><span class="h-meta"></span></span>' +
       '<span class="h-dist"></span>' +
       '<button class="h-remove" title="Remove" aria-label="Remove"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>';
@@ -781,8 +806,8 @@ function render() {
     dist.title = d.mi + ' · ' + compass(bearing([state.you.lng, state.you.lat], [h.lng, h.lat]));
     const icon = li.querySelector('.h-icon');
     const b = bondOf(h);
-    icon.textContent = (h.name || '?').trim().charAt(0);
-    icon.style.setProperty('--c', b[theme]);
+    icon.style.color = b[theme];
+    icon.style.background = b.id === 'someone' ? '' : b[theme] + '24';
     icon.title = b.label + ' — click to change';
     icon.addEventListener('click', e => {
       e.stopPropagation();
@@ -791,11 +816,26 @@ function render() {
       render();
       toast(h.name + ' · ' + next.label);
     });
-    li.addEventListener('click', () => focusHeart(h.id));
-    li.querySelector('.h-remove').addEventListener('click', e => {
+    li.addEventListener('click', () => {
+      if (confirmingId !== null) return cancelRemove();
+      focusHeart(h.id);
+    });
+    const rm = li.querySelector('.h-remove');
+    if (confirmingId === h.id) {
+      li.classList.add('confirming');
+      rm.classList.add('confirm');
+      rm.innerHTML = '';
+      rm.appendChild(document.createTextNode('Remove'));
+      rm.title = 'Remove ' + (h.name || 'this person');
+    }
+    rm.addEventListener('click', e => {
       e.stopPropagation();
+      if (confirmingId !== h.id) return askToRemove(h.id);   // ask first
+      clearTimeout(confirmTimer);
+      confirmingId = null;
       state.hearts = state.hearts.filter(x => x.id !== h.id);
       save(); render();
+      toast(h.name + ' removed');
       if (!state.hearts.length) setMode('them');
     });
     heartsList.appendChild(li);
@@ -1008,6 +1048,8 @@ $('btnAdd').addEventListener('click', () => {
   setMode('them');
 });
 $('themCancel').addEventListener('click', () => { if (state.hearts.length) setMode('list'); });
+$('btnMoveHome').addEventListener('click', e => { e.stopPropagation(); youSearch.value = ''; setMode('you'); });
+
 $('btnCollapse').addEventListener('click', e => {
   e.stopPropagation();
   collapsed = !collapsed;
@@ -1148,6 +1190,9 @@ paintGrain();
     });
   }, { passive: true });
 }
+
+addEventListener('keydown', e => { if (e.key === 'Escape') cancelRemove(); });
+map.on('click', cancelRemove);
 
 /* ---------------------------------------------------------------- boot */
 /* Booting off `load` means waiting for the first painted frame — which never
