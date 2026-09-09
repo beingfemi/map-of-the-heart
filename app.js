@@ -665,7 +665,8 @@ let collapsed = localStorage.getItem('moth.collapsed') === '1';
 
 /* Folded away, the sheet is just the place you are standing and a count. It only
    makes sense once someone is on the map, so it unfolds itself when the list empties. */
-let lastCollapsed = null;
+// starts in sync, so the first paint settles rather than playing a fold
+let lastCollapsed = collapsed;
 function applyCollapse() {
   if (!state.hearts.length) collapsed = false;
   panel.classList.toggle('collapsed', collapsed);
@@ -684,6 +685,10 @@ function applyCollapse() {
   lastCollapsed = collapsed;
 
   const full = wrap.scrollHeight;
+  if (!full) {                      // nothing laid out yet — settle, do not animate
+    wrap.style.maxHeight = collapsed ? '0px' : '';
+    return;
+  }
   wrap.style.maxHeight = (collapsed ? full : 0) + 'px';
   requestAnimationFrame(() => {
     wrap.style.maxHeight = (collapsed ? 0 : full) + 'px';
