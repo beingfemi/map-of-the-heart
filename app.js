@@ -45,17 +45,27 @@ const BASEMAP = {
   }
 };
 
-function preferredTheme() {
-  const saved = localStorage.getItem('moth.theme');
-  if (saved === 'light' || saved === 'dark') return saved;
-  return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
-let theme = preferredTheme();
-document.documentElement.dataset.theme = theme;
+/* Appearance follows the system by default and keeps following it — a Mac that
+   switches to dark at sunset takes this with it. The control cycles
+   Auto -> Light -> Dark, and only a deliberate choice pins it. */
+const darkMedia = matchMedia('(prefers-color-scheme: dark)');
+const MODES = ['auto', 'light', 'dark'];
 
+function savedMode() {
+  const m = localStorage.getItem('moth.theme');
+  return MODES.indexOf(m) >= 0 ? m : 'auto';
+}
+let themeMode = savedMode();
+const resolveTheme = () => themeMode === 'auto' ? (darkMedia.matches ? 'dark' : 'light') : themeMode;
+let theme = resolveTheme();
+document.documentElement.dataset.theme = theme;
+document.documentElement.dataset.appearance = themeMode;
+
+/* Graphite, not pink — a pencil line across paper. The only saturated thing
+   left on the map is the blue dot standing for you, the way Maps does it. */
 const COLORS = {
-  light: { line: '#e0245e', glow: '#ff5c8a', pulse: '#e0245e' },
-  dark:  { line: '#ff5c8a', glow: '#ff5c8a', pulse: '#ffa3c0' }
+  light: { line: '#3a3a3c', glow: '#8e8e93', pulse: '#1c1c1e' },
+  dark:  { line: '#d1d1d6', glow: '#8e8e93', pulse: '#f2f2f7' }
 };
 const ink = () => COLORS[theme];
 
@@ -912,14 +922,28 @@ compassBtn.addEventListener('click', () => {
 $('btnZoomIn').addEventListener('click', () => { userMoved = true; map.zoomIn({ duration: 260 }); });
 $('btnZoomOut').addEventListener('click', () => { userMoved = true; map.zoomOut({ duration: 260 }); });
 
-$('btnTheme').addEventListener('click', () => {
-  theme = theme === 'dark' ? 'light' : 'dark';
+function applyTheme() {
+  const next = resolveTheme();
+  const changed = next !== theme;
+  theme = next;
   document.documentElement.dataset.theme = theme;
-  localStorage.setItem('moth.theme', theme);
+  document.documentElement.dataset.appearance = themeMode;
+  if (!changed) return;
   // same style, different palette — nothing to reload, nothing to rebuild
   applyBasemapPalette();
   repaintTheme();
   syncMarkers();
+  paintGrain();
+}
+
+darkMedia.addEventListener('change', () => { if (themeMode === 'auto') applyTheme(); });
+
+$('btnTheme').addEventListener('click', () => {
+  themeMode = MODES[(MODES.indexOf(themeMode) + 1) % MODES.length];
+  localStorage.setItem('moth.theme', themeMode);
+  applyTheme();
+  toast(themeMode === 'auto' ? 'Appearance follows your system'
+      : themeMode === 'light' ? 'Always light' : 'Always dark');
 });
 
 $('btnShare').addEventListener('click', async () => {
