@@ -67,6 +67,19 @@ const COLORS = {
   light: { line: '#3a3a3c', glow: '#8e8e93', pulse: '#1c1c1e' },
   dark:  { line: '#d1d1d6', glow: '#8e8e93', pulse: '#f2f2f7' }
 };
+
+/* What the line between you means. Colour is the only thing carrying it, so the
+   set stays small and the default stays graphite — colour is something you opt
+   into, person by person, and the map is still quiet if you never do. */
+const BONDS = [
+  { id: 'partner', label: 'Partner', light: '#ff2d55', dark: '#ff375f' },
+  { id: 'family',  label: 'Family',  light: '#ff9500', dark: '#ff9f0a' },
+  { id: 'friend',  label: 'Friend',  light: '#34c759', dark: '#30d158' },
+  { id: 'someone', label: 'Someone', light: '#3a3a3c', dark: '#d1d1d6' }
+];
+const DEFAULT_BOND = 'someone';
+const bondOf = h => BONDS.find(b => b.id === h.bond) || BONDS[BONDS.length - 1];
+const bondColor = h => bondOf(h)[theme];
 const ink = () => COLORS[theme];
 
 /* ---------------------------------------------------------------- state */
@@ -78,7 +91,7 @@ let bootRetry = null;
 function serialize() {
   return {
     you: state.you && { lng: r5(state.you.lng), lat: r5(state.you.lat), label: state.you.label },
-    hearts: state.hearts.map(h => ({ lng: r5(h.lng), lat: r5(h.lat), label: h.label, name: h.name }))
+    hearts: state.hearts.map(h => ({ lng: r5(h.lng), lat: r5(h.lat), label: h.label, name: h.name, bond: h.bond || DEFAULT_BOND }))
   };
 }
 function save() {
@@ -96,7 +109,7 @@ function adopt(data) {
   if (!data || !data.you || typeof data.you.lng !== 'number') return false;
   state.you = data.you;
   state.hearts = (data.hearts || []).filter(h => typeof h.lng === 'number' && typeof h.lat === 'number');
-  state.hearts.forEach(h => { h.id = nextId++; h.p = 1; });
+  state.hearts.forEach(h => { h.id = nextId++; h.p = 1; h.bond = bondOf(h).id; });
   return true;
 }
 
@@ -424,7 +437,7 @@ function installLayers() {
     map.addLayer({
       id: 'arc-glow', type: 'line', source: 'arcs',
       layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': ink().glow, 'line-width': 8, 'line-opacity': 0.16, 'line-blur': 5 }
+      paint: { 'line-color': ['get', 'color'], 'line-width': 8, 'line-opacity': 0.16, 'line-blur': 5 }
     });
   }
   if (!map.getLayer('arc-line')) {
@@ -432,7 +445,7 @@ function installLayers() {
       id: 'arc-line', type: 'line', source: 'arcs',
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
-        'line-color': ink().line,
+        'line-color': ['get', 'color'],
         'line-width': ['interpolate', ['linear'], ['zoom'], 1, 1.4, 6, 2.2, 12, 3],
         'line-opacity': 0.9
       }
@@ -441,14 +454,14 @@ function installLayers() {
   if (!map.getLayer('pulse-halo')) {
     map.addLayer({
       id: 'pulse-halo', type: 'circle', source: 'pulses',
-      paint: { 'circle-color': ink().pulse, 'circle-radius': 11, 'circle-opacity': ['*', ['get', 'o'], 0.16], 'circle-blur': 0.8 }
+      paint: { 'circle-color': ['get', 'color'], 'circle-radius': 11, 'circle-opacity': ['*', ['get', 'o'], 0.16], 'circle-blur': 0.8 }
     });
   }
   if (!map.getLayer('pulse-core')) {
     map.addLayer({
       id: 'pulse-core', type: 'circle', source: 'pulses',
       paint: {
-        'circle-color': ink().pulse,
+        'circle-color': ['get', 'color'],
         'circle-radius': 3.6,
         'circle-opacity': ['get', 'o'],
         'circle-stroke-color': '#fff',
@@ -461,10 +474,7 @@ function installLayers() {
 
 function repaintTheme() {
   if (!map.getLayer('arc-line')) return;
-  map.setPaintProperty('arc-glow', 'line-color', ink().glow);
-  map.setPaintProperty('arc-line', 'line-color', ink().line);
-  map.setPaintProperty('pulse-halo', 'circle-color', ink().pulse);
-  map.setPaintProperty('pulse-core', 'circle-color', ink().pulse);
+  // arc and pulse colour comes from each feature's bond, refreshed by draw()
 }
 
 /* setStyle drops every custom source and layer, and `style.load` is not
@@ -505,7 +515,7 @@ function makeHeartEl(heart) {
   el.className = 'mk mk-heart';
   el.innerHTML =
     '<svg viewBox="0 0 30 38" xmlns="http://www.w3.org/2000/svg">' +
-      '<path d="M15 37c0-6 11-13.2 11-22A11 11 0 0 0 4 15c0 8.8 11 16 11 22Z" fill="' + ink().line + '"/>' +
+      '<path d="M15 37c0-6 11-13.2 11-22A11 11 0 0 0 4 15c0 8.8 11 16 11 22Z" fill="' + bondColor(heart) + '"/>' +
       '<g class="pulse"><path d="M15 20.2s-5-3.1-5-6.5a2.9 2.9 0 0 1 5-1.9 2.9 2.9 0 0 1 5 1.9c0 3.4-5 6.5-5 6.5Z" fill="#fff"/></g>' +
     '</svg>' +
     '<div class="mk-label"></div>';
@@ -531,7 +541,7 @@ function syncMarkers() {
     } else {
       mk.setLngLat([h.lng, h.lat]);
       mk.getElement().querySelector('.mk-label').textContent = h.name || h.label;
-      mk.getElement().querySelector('path').setAttribute('fill', ink().line);
+      mk.getElement().querySelector('path').setAttribute('fill', bondColor(h));
     }
   });
 }
@@ -560,8 +570,9 @@ function draw(now) {
     }
     const eased = 1 - Math.pow(1 - h.p, 3);
     const upto = Math.max(2, Math.round(eased * (path.length - 1)) + 1);
+    const col = bondColor(h);
     arcFeatures.push({
-      type: 'Feature', properties: {},
+      type: 'Feature', properties: { color: col },
       geometry: { type: 'MultiLineString', coordinates: splitWorlds(path.slice(0, upto)) }
     });
 
@@ -574,7 +585,7 @@ function draw(now) {
         const idx = Math.min(path.length - 1, Math.round(smooth * (path.length - 1)));
         const fade = Math.min(1, Math.min(f, 1 - f) * 6);
         pulseFeatures.push({
-          type: 'Feature', properties: { o: fade },
+          type: 'Feature', properties: { o: fade, color: col },
           geometry: { type: 'Point', coordinates: [wrapLng(path[idx][0]), path[idx][1]] }
         });
       }
@@ -639,6 +650,25 @@ const heartsList = $('heartsList'), homeLabel = $('homeLabel'), homeSun = $('hom
 const toastEl = $('toast'), panel = $('panel');
 
 let mode = 'you';           // 'you' | 'them' | 'list'
+let pendingBond = DEFAULT_BOND;
+
+function paintBondPicker() {
+  const box = $('bondPicker');
+  box.innerHTML = '';
+  BONDS.forEach(b => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.dataset.bond = b.id;
+    btn.setAttribute('role', 'radio');
+    btn.setAttribute('aria-checked', String(b.id === pendingBond));
+    btn.className = b.id === pendingBond ? 'on' : '';
+    btn.style.setProperty('--dot', b[theme]);
+    btn.innerHTML = '<span class="seg-dot"></span>';
+    btn.appendChild(document.createTextNode(b.label));
+    btn.addEventListener('click', () => { pendingBond = b.id; paintBondPicker(); });
+    box.appendChild(btn);
+  });
+}
 
 function setMode(next) {
   mode = next;
@@ -647,7 +677,7 @@ function setMode(next) {
   stepList.hidden = next !== 'list';
   $('themCancel').hidden = !state.hearts.length;
   map.getCanvas().style.cursor = (next === 'you' || next === 'them') ? 'crosshair' : '';
-  if (next === 'them') setTimeout(() => themName.focus(), 60);
+  if (next === 'them') { paintBondPicker(); setTimeout(() => themName.focus(), 60); }
   if (next === 'you') setTimeout(() => youSearch.focus(), 60);
 }
 
@@ -685,6 +715,18 @@ function render() {
     li.querySelector('.h-sky').textContent =
       compass(bearing([state.you.lng, state.you.lat], [h.lng, h.lat])) + ' · ' + skyWord(h.lat, h.lng);
     li.querySelector('.h-dist b').textContent = d.km;
+    const icon = li.querySelector('.h-icon');
+    const b = bondOf(h);
+    icon.style.color = b[theme];
+    icon.style.background = b.id === 'someone' ? '' : b[theme] + '24';
+    icon.title = b.label + ' — click to change';
+    icon.addEventListener('click', e => {
+      e.stopPropagation();
+      const next = BONDS[(BONDS.indexOf(bondOf(h)) + 1) % BONDS.length];
+      h.bond = next.id;
+      render();
+      toast(h.name + ' · ' + next.label);
+    });
     li.addEventListener('click', () => focusHeart(h.id));
     li.querySelector('.h-remove').addEventListener('click', e => {
       e.stopPropagation();
@@ -728,35 +770,41 @@ function fitTo(coords) {
   const lngs = coords.map(c => c[0]), lats = coords.map(c => c[1]);
   const bounds = [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]];
 
-  // Padding has to leave a usable box behind, or fitBounds asks for a zoom
-  // the map cannot reach and lands somewhere arbitrary. Cap it against the viewport.
   const panelH = panel.getBoundingClientRect().height;
-  const pad = {
+  const full = {
     top: Math.min(96, h * 0.14),
     bottom: narrow ? Math.min(panelH + 16, h * 0.42) : Math.min(72, h * 0.12),
     left: narrow ? 22 : Math.min(380, w * 0.34),
     right: narrow ? 22 : Math.min(64, w * 0.08)
   };
-  const opts = { padding: pad, maxZoom: 9, duration: 1400, essential: true };
 
-  // Mercator will not let the viewport be taller than the world, which puts a hard
-  // floor on how far out a tall, narrow screen can zoom. When the span needs more
-  // room than that floor allows, no framing exists — centre on home instead and let
-  // the list carry the rest.
+  // With a single world and no copies, MapLibre will not zoom out past the point
+  // where the map stops covering the viewport. Ask it to fit a span wider than
+  // that — four people spread across the globe, with the panel eating 380px of
+  // width — and cameraForBounds returns nothing at all rather than its best
+  // effort, which used to leave the camera exactly where it was. So ease the
+  // padding off until a camera exists, then clamp it into range.
   const floor = Math.max(Math.log2(w / 512), Math.log2(h / 512));
-  const cam = map.cameraForBounds(bounds, { padding: pad, maxZoom: 9 });
-  if (state.you && cam && cam.zoom < floor) {
-    map.easeTo({
-      center: [state.you.lng, state.you.lat],
-      zoom: floor,
-      offset: [0, (pad.top - pad.bottom) / 2],
-      duration: 1400,
-      essential: true
-    });
-    return;
+  let cam = null, pad = full;
+  for (const scale of [1, 0.6, 0.3, 0]) {
+    const p = { top: full.top * scale, bottom: full.bottom * scale,
+                left: full.left * scale, right: full.right * scale };
+    const c = map.cameraForBounds(bounds, { padding: p, maxZoom: 9 });
+    if (c) { cam = c; pad = p; break; }
   }
 
-  map.fitBounds(bounds, opts);
+  if (!cam) {
+    // nothing frames it: show as much of the map as this window can hold
+    map.easeTo({ center: [0, 20], zoom: floor, duration: 1400, essential: true });
+    return;
+  }
+  if (cam.zoom >= floor) {
+    map.fitBounds(bounds, { padding: pad, maxZoom: 9, duration: 1400, essential: true });
+    return;
+  }
+  // too wide for this window even unpadded — centre the group rather than
+  // abandoning it, so every arc stays as close to frame as it can be
+  map.easeTo({ center: cam.center, zoom: floor, padding: pad, duration: 1400, essential: true });
 }
 
 /* ---------------------------------------------------------------- actions */
@@ -777,6 +825,7 @@ function addHeart(place, name) {
     lng: place.lng, lat: place.lat,
     label: place.label,
     name: (name || '').trim() || place.title || place.label,
+    bond: pendingBond,
     p: 0, _t0: undefined
   };
   state.hearts.push(h);
@@ -883,7 +932,11 @@ map.on('click', async e => {
 });
 
 /* ---------------------------------------------------------------- buttons */
-$('btnAdd').addEventListener('click', () => { themName.value = ''; themSearch.value = ''; setMode('them'); });
+$('btnAdd').addEventListener('click', () => {
+  themName.value = ''; themSearch.value = '';
+  pendingBond = DEFAULT_BOND; paintBondPicker();
+  setMode('them');
+});
 $('themCancel').addEventListener('click', () => { if (state.hearts.length) setMode('list'); });
 $('btnMoveHome').addEventListener('click', () => { youSearch.value = ''; setMode('you'); });
 
@@ -932,8 +985,9 @@ function applyTheme() {
   // same style, different palette — nothing to reload, nothing to rebuild
   applyBasemapPalette();
   repaintTheme();
-  syncMarkers();
+  render();
   paintGrain();
+  if (mode === 'them') paintBondPicker();
 }
 
 darkMedia.addEventListener('change', () => { if (themeMode === 'auto') applyTheme(); });

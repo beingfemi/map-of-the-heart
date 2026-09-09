@@ -349,6 +349,53 @@ html[data-appearance="dark"] #btnTheme .i-moon { display: block; }
   box-shadow: 0 0 0 3.5px color-mix(in srgb, var(--tint) 28%, transparent);
 }
 
+/* ---------- bond picker ---------- */
+.seg-label {
+  margin: 14px 0 6px;
+  font-size: 13px;
+  line-height: 18px;
+  letter-spacing: -.006em;
+  color: var(--label-2);
+}
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  padding: 2px;
+  border-radius: 10px;
+  background: var(--fill-3);
+}
+.segmented button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--label-2);
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: -.006em;
+  cursor: pointer;
+  transition: background .18s, color .18s, box-shadow .18s;
+}
+.segmented button.on {
+  background: var(--surface-solid);
+  color: var(--label);
+  font-weight: 590;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .1), 0 0 0 .5px rgba(0, 0, 0, .04);
+}
+html[data-theme="dark"] .segmented button.on { box-shadow: 0 1px 3px rgba(0, 0, 0, .5); }
+.seg-dot {
+  width: 7px; height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--dot);
+}
+
 /* ---------- results ---------- */
 .results {
   list-style: none;
@@ -492,6 +539,8 @@ html[data-appearance="dark"] #btnTheme .i-moon { display: block; }
   color: var(--label-2);
 }
 .h-icon svg { width: 13px; height: 13px; }
+.h-icon { transition: background .2s, color .2s; }
+.h-icon:hover { filter: brightness(.92); }
 .h-body { flex: 1; min-width: 0; }
 .h-name {
   display: block;
