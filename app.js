@@ -513,11 +513,17 @@ function makeYouEl() {
 function makeHeartEl(heart) {
   const el = document.createElement('div');
   el.className = 'mk mk-heart';
+  // The drop animation lives on an inner wrapper, never on the element MapLibre
+  // positions: a CSS animation on `transform` beats the inline transform it sets,
+  // and with fill:both it keeps beating it, which leaves the pin behind when the
+  // map moves.
   el.innerHTML =
-    '<svg viewBox="0 0 30 38" xmlns="http://www.w3.org/2000/svg">' +
-      '<path d="M15 37c0-6 11-13.2 11-22A11 11 0 0 0 4 15c0 8.8 11 16 11 22Z" fill="' + bondColor(heart) + '"/>' +
-      '<g class="pulse"><path d="M15 20.2s-5-3.1-5-6.5a2.9 2.9 0 0 1 5-1.9 2.9 2.9 0 0 1 5 1.9c0 3.4-5 6.5-5 6.5Z" fill="#fff"/></g>' +
-    '</svg>' +
+    '<span class="mk-drop">' +
+      '<svg viewBox="0 0 30 38" xmlns="http://www.w3.org/2000/svg">' +
+        '<path d="M15 37c0-6 11-13.2 11-22A11 11 0 0 0 4 15c0 8.8 11 16 11 22Z" fill="' + bondColor(heart) + '"/>' +
+        '<g class="pulse"><path d="M15 20.2s-5-3.1-5-6.5a2.9 2.9 0 0 1 5-1.9 2.9 2.9 0 0 1 5 1.9c0 3.4-5 6.5-5 6.5Z" fill="#fff"/></g>' +
+      '</svg>' +
+    '</span>' +
     '<div class="mk-label"></div>';
   el.querySelector('.mk-label').textContent = heart.name || heart.label;
   el.addEventListener('click', e => { e.stopPropagation(); focusHeart(heart.id); });
@@ -536,7 +542,8 @@ function syncMarkers() {
   state.hearts.forEach(h => {
     let mk = heartMarkers.get(h.id);
     if (!mk) {
-      mk = new maplibregl.Marker({ element: makeHeartEl(h), anchor: 'bottom' }).setLngLat([h.lng, h.lat]).addTo(map);
+      mk = new maplibregl.Marker({ element: makeHeartEl(h), anchor: 'bottom', offset: [0, 1] })
+        .setLngLat([h.lng, h.lat]).addTo(map);
       heartMarkers.set(h.id, mk);
     } else {
       mk.setLngLat([h.lng, h.lat]);
