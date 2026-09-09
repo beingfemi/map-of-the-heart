@@ -256,10 +256,14 @@ html[data-appearance="dark"] #btnTheme .i-moon { display: block; }
   bottom: max(18px, env(safe-area-inset-bottom));
   width: 380px;
   max-height: calc(100vh - 110px);
-  overflow-y: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   padding: 16px;
   border-radius: 22px;
-  animation: rise .5s cubic-bezier(.2,.8,.2,1) both;
+  animation: rise .5s cubic-bezier(.2,.8,.2,1) backwards;
+  /* its own layer, so blurring a repainting WebGL map underneath cannot drag it */
+  backface-visibility: hidden;
 }
 @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
 
@@ -406,7 +410,7 @@ html[data-theme="dark"] .segmented button.on { box-shadow: 0 1px 3px rgba(0, 0, 
   border-radius: 14px;
   background: var(--surface-solid);
   border: 1px solid var(--hairline);
-  animation: rise .22s cubic-bezier(.2,.8,.2,1) both;
+  animation: rise .22s cubic-bezier(.2,.8,.2,1) backwards;
 }
 .results li {
   padding: 9px 10px;
@@ -510,7 +514,18 @@ html[data-theme="dark"] .segmented button.on { box-shadow: 0 1px 3px rgba(0, 0, 
 }
 
 /* ---------- hearts list ---------- */
-.hearts { list-style: none; margin: 0; padding: 0; }
+/* the step fills the sheet, and only the list of people scrolls */
+.step { display: flex; flex-direction: column; min-height: 0; }
+.step[hidden] { display: none; }
+.hearts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
 .hearts li {
   display: flex;
   align-items: center;
@@ -519,7 +534,7 @@ html[data-theme="dark"] .segmented button.on { box-shadow: 0 1px 3px rgba(0, 0, 
   min-height: 44px;
   padding: 11px 0;
   cursor: pointer;
-  animation: rise .4s cubic-bezier(.2,.8,.2,1) both;
+  animation: rise .4s cubic-bezier(.2,.8,.2,1) backwards;
 }
 .hearts li::after {
   content: "";

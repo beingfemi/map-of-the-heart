@@ -1019,6 +1019,29 @@ $('btnShare').addEventListener('click', async () => {
   }
 });
 
+/* Scrolling pans the map, so a scroll that lands on the panel should still pan
+   it — unless the panel has its own overflow to consume first. */
+{
+  panel.addEventListener('wheel', e => {
+    // only the list of people may swallow a scroll, and only while it has
+    // somewhere left to go — everywhere else on the sheet, the map gets it
+    const list = e.target.closest && e.target.closest('.hearts');
+    if (list) {
+      const canScroll = list.scrollHeight > list.clientHeight + 1;
+      const atTop = list.scrollTop <= 0;
+      const atEnd = list.scrollTop + list.clientHeight >= list.scrollHeight - 1;
+      if (canScroll && !((e.deltaY < 0 && atTop) || (e.deltaY > 0 && atEnd))) return;
+    }
+    e.preventDefault();
+    map.getCanvas().dispatchEvent(new WheelEvent('wheel', {
+      bubbles: false, cancelable: true,
+      clientX: e.clientX, clientY: e.clientY,
+      deltaX: e.deltaX, deltaY: e.deltaY, deltaMode: e.deltaMode,
+      ctrlKey: e.ctrlKey, metaKey: e.metaKey
+    }));
+  }, { passive: false });
+}
+
 /* ---------------------------------------------------------------- paper */
 /* A little tooth, so the map reads as something drawn on a surface rather than
    a flat fill. Generated once and tiled; far cheaper than shipping a texture. */
