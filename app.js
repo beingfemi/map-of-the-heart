@@ -238,6 +238,7 @@ const map = new maplibregl.Map({
   maxZoom: 18
 });
 map.touchZoomRotate.enableRotation();
+map.setPadding({ top: 0, bottom: 0, left: 0, right: 0 });
 
 let userMoved = false;          // once they pan or zoom themselves, we stop re-framing on them
 
@@ -805,13 +806,18 @@ function fitTo(coords) {
     map.easeTo({ center: [0, 20], zoom: floor, duration: 1400, essential: true });
     return;
   }
-  if (cam.zoom >= floor) {
-    map.fitBounds(bounds, { padding: pad, maxZoom: 9, duration: 1400, essential: true });
-    return;
-  }
-  // too wide for this window even unpadded — centre the group rather than
-  // abandoning it, so every arc stays as close to frame as it can be
-  map.easeTo({ center: cam.center, zoom: floor, padding: pad, duration: 1400, essential: true });
+
+  // cameraForBounds has already folded the padding into this centre and zoom.
+  // Passing `padding` on to easeTo as well would leave it stuck on the transform,
+  // and MapLibre then only keeps the *padded* box covered by the map — so panning
+  // west lets the edge of the world slide `padding.left` pixels into view and you
+  // get a band of empty background down the side. Move with centre and zoom alone.
+  map.easeTo({
+    center: cam.center,
+    zoom: Math.max(cam.zoom, floor),
+    duration: 1400,
+    essential: true
+  });
 }
 
 /* ---------------------------------------------------------------- actions */
