@@ -656,7 +656,7 @@ const $ = id => document.getElementById(id);
 const stepYou = $('stepYou'), stepThem = $('stepThem'), stepList = $('stepList');
 const youSearch = $('youSearch'), youResults = $('youResults');
 const themName = $('themName'), themSearch = $('themSearch'), themResults = $('themResults');
-const heartsList = $('heartsList'), homeLabel = $('homeLabel'), homeSun = $('homeSun');
+const heartsList = $('heartsList'), sheetCount = $('sheetCount');
 const toastEl = $('toast'), panel = $('panel');
 
 let mode = 'you';           // 'you' | 'them' | 'list'
@@ -690,11 +690,10 @@ function applyCollapse() {
     return;
   }
   wrap.style.maxHeight = (collapsed ? full : 0) + 'px';
-  requestAnimationFrame(() => {
-    wrap.style.maxHeight = (collapsed ? 0 : full) + 'px';
-    // release the cap once open, so the list can grow and scroll on its own
-    if (!collapsed) setTimeout(() => { if (!collapsed) wrap.style.maxHeight = ''; }, 340);
-  });
+  void wrap.offsetHeight;   // flush layout so the next value has something to animate from
+  wrap.style.maxHeight = (collapsed ? 0 : full) + 'px';
+  // release the cap once open, so the list can grow and scroll on its own
+  if (!collapsed) setTimeout(() => { if (!collapsed) wrap.style.maxHeight = ''; }, 340);
 }
 
 function paintBondPicker() {
@@ -739,21 +738,39 @@ function render() {
   syncMarkers();
   state.hearts.forEach(h => { h._path = null; });
 
-  if (state.you) {
-    homeLabel.textContent = state.you.label;
-    homeSun.textContent = collapsed && state.hearts.length
-      ? state.hearts.length + (state.hearts.length === 1 ? ' person' : ' people')
-      : skyWord(state.you.lat, state.you.lng, true);
-  }
+  sheetCount.textContent = collapsed && state.hearts.length
+    ? state.hearts.length + (state.hearts.length === 1 ? ' person' : ' people')
+    : '';
 
   heartsList.innerHTML = '';
+
+  // you sit at the top of your own list, the way Find My puts Me there
+  if (state.you) {
+    const me = document.createElement('li');
+    me.className = 'you';
+    me.innerHTML =
+      '<span class="h-icon" aria-hidden="true"></span>' +
+      '<span class="h-body"><span class="h-name">You</span><span class="h-meta"></span></span>' +
+      '<button class="linkbtn" id="btnMoveHome">Change</button>';
+    me.querySelector('.h-meta').textContent =
+      state.you.label + ' · ' + skyGlyph(state.you.lat, state.you.lng);
+    me.querySelector('#btnMoveHome').addEventListener('click', e => {
+      e.stopPropagation();
+      youSearch.value = '';
+      setMode('you');
+    });
+    me.addEventListener('click', () => map.easeTo({
+      center: [state.you.lng, state.you.lat], duration: 900, essential: true
+    }));
+    heartsList.appendChild(me);
+  }
   state.hearts.forEach((h, i) => {
     const km = distanceKm([state.you.lng, state.you.lat], [h.lng, h.lat]);
     const d = fmtDistance(km);
     const li = document.createElement('li');
     li.style.animationDelay = (i * 45) + 'ms';
     li.innerHTML =
-      '<span class="h-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-8.5-5.3-8.5-11.1A4.9 4.9 0 0 1 12 6.6a4.9 4.9 0 0 1 8.5 3.3C20.5 15.7 12 21 12 21Z"/></svg></span>' +
+      '<span class="h-icon" aria-hidden="true"></span>' +
       '<span class="h-body"><span class="h-name"></span><span class="h-meta"></span></span>' +
       '<span class="h-dist"></span>' +
       '<button class="h-remove" title="Remove" aria-label="Remove"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>';
@@ -764,8 +781,8 @@ function render() {
     dist.title = d.mi + ' · ' + compass(bearing([state.you.lng, state.you.lat], [h.lng, h.lat]));
     const icon = li.querySelector('.h-icon');
     const b = bondOf(h);
-    icon.style.color = b[theme];
-    icon.style.background = b.id === 'someone' ? '' : b[theme] + '24';
+    icon.textContent = (h.name || '?').trim().charAt(0);
+    icon.style.setProperty('--c', b[theme]);
     icon.title = b.label + ' — click to change';
     icon.addEventListener('click', e => {
       e.stopPropagation();
@@ -991,8 +1008,6 @@ $('btnAdd').addEventListener('click', () => {
   setMode('them');
 });
 $('themCancel').addEventListener('click', () => { if (state.hearts.length) setMode('list'); });
-$('btnMoveHome').addEventListener('click', e => { e.stopPropagation(); youSearch.value = ''; setMode('you'); });
-
 $('btnCollapse').addEventListener('click', e => {
   e.stopPropagation();
   collapsed = !collapsed;

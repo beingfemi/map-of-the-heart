@@ -254,13 +254,13 @@ html[data-appearance="dark"] #btnTheme .i-moon { display: block; }
   z-index: 6;
   left: 18px;
   bottom: max(18px, env(safe-area-inset-bottom));
-  width: 318px;
+  width: 352px;
   max-height: calc(100vh - 110px);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  padding: 13px 14px;
-  border-radius: 20px;
+  padding: 5px 16px 16px;
+  border-radius: 28px;
   animation: rise .5s cubic-bezier(.2,.8,.2,1) backwards;
   /* its own layer, so blurring a repainting WebGL map underneath cannot drag it */
   backface-visibility: hidden;
@@ -479,56 +479,66 @@ html[data-theme="dark"] .segmented button.on { box-shadow: 0 1px 3px rgba(0, 0, 
 .linkbtn { color: var(--tint); }
 .linkbtn:hover { opacity: .65; }
 
-/* ---------- home row ---------- */
-.home {
+/* ---------- sheet head ---------- */
+/* A grabber, a large title and a round add — the shape of a Find My sheet, at
+   Apple's own metrics: 36x5pt grabber, Title 1 at 28/34, 16pt side margins. */
+.grabber {
+  display: block;
+  width: 100%;
+  padding: 0 0 10px;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.grabber[hidden] { display: none; }
+.grabber span {
+  display: block;
+  width: 36px; height: 5px;
+  margin: 0 auto;
+  border-radius: 999px;
+  background: var(--label-3);
+  transition: background .2s;
+}
+.grabber:hover span { background: var(--label-2); }
+
+.sheet-head {
   display: flex;
   align-items: center;
-  gap: 9px;
-  min-height: 34px;
-  padding-bottom: 10px;
-  border-bottom: .5px solid var(--separator);
+  gap: 8px;
+  padding-bottom: 6px;
 }
-.home__dot {
-  flex: none;
-  width: 9px; height: 9px;
-  border-radius: 50%;
-  background: var(--blue);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 22%, transparent);
-}
-.home__text { flex: 1; min-width: 0; }
-.home__label {
-  display: block;
-  font-size: 15px;
-  line-height: 20px;
-  font-weight: 600;
-  letter-spacing: -.016em;
+.sheet-title {
+  margin: 0;
+  font-size: 28px;
+  line-height: 34px;
+  font-weight: 700;
+  letter-spacing: -.022em;
   color: var(--label);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.home__sub {
-  display: block;
-  font-size: 12px;
-  line-height: 16px;
+.sheet-count {
+  flex: 1;
+  font-size: 15px;
+  letter-spacing: -.016em;
   color: var(--label-3);
+  white-space: nowrap;
 }
-
-/* ---------- collapse ---------- */
-.disclosure {
+.round-add {
   flex: none;
-  width: 24px; height: 24px;
+  width: 32px; height: 32px;
   display: grid; place-items: center;
   border: 0; padding: 0;
   border-radius: 50%;
-  background: transparent;
-  color: var(--label-3);
+  background: var(--fill-3);
+  color: var(--label);
   cursor: pointer;
-  transition: color .2s, background .2s, transform .28s cubic-bezier(.2,.8,.2,1);
+  transition: background .18s, transform .18s cubic-bezier(.2,.8,.2,1);
 }
-.disclosure[hidden] { display: none; }
-.disclosure:hover { color: var(--label); background: var(--fill-3); }
-.disclosure svg { width: 15px; height: 15px; }
-.panel.collapsed .disclosure { transform: rotate(180deg); }
+.round-add:hover { background: var(--fill-2); }
+.round-add:active { transform: scale(.92); }
+.round-add svg { width: 18px; height: 18px; }
 
+/* ---------- collapse ---------- */
 /* The height is measured and set in JS. A grid 0fr row cannot close here: this
    sits inside a flex column, which sizes it from its content and leaves the row
    stretched to that height however small the track is asked to be. */
@@ -543,7 +553,6 @@ html[data-theme="dark"] .segmented button.on { box-shadow: 0 1px 3px rgba(0, 0, 
   min-height: 0;
 }
 .panel.collapsed .collapsible { opacity: 0; }
-.panel.collapsed .home { padding-bottom: 0; border-bottom: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   .collapsible { transition: none; }
@@ -565,17 +574,17 @@ html[data-theme="dark"] .segmented button.on { box-shadow: 0 1px 3px rgba(0, 0, 
 .hearts li {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   position: relative;
-  min-height: 38px;
-  padding: 8px 0;
+  min-height: 64px;
+  padding: 10px 0;
   cursor: pointer;
   animation: rise .4s cubic-bezier(.2,.8,.2,1) backwards;
 }
 .hearts li::after {
   content: "";
   position: absolute;
-  left: 30px; right: 0; bottom: 0;
+  left: 56px; right: 0; bottom: 0;
   height: .5px;
   background: var(--separator);
 }
@@ -583,40 +592,58 @@ html[data-theme="dark"] .segmented button.on { box-shadow: 0 1px 3px rgba(0, 0, 
 .hearts li:hover { background: var(--fill-3); border-radius: 10px; }
 .h-icon {
   flex: none;
-  width: 20px; height: 20px;
+  width: 44px; height: 44px;
   display: grid; place-items: center;
   border-radius: 50%;
-  background: var(--fill-3);
-  color: var(--label-2);
+  background: color-mix(in srgb, var(--c, var(--label-3)) 17%, transparent);
+  color: var(--c, var(--label-2));
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -.024em;
+  text-transform: uppercase;
+  user-select: none;
 }
-.h-icon svg { width: 11px; height: 11px; }
+/* the row standing for you keeps the map's blue dot */
+.hearts li.you .h-icon {
+  background: var(--tint);
+  color: #fff;
+}
+.hearts li.you .h-icon::after {
+  content: "";
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 2.5px color-mix(in srgb, #fff 45%, transparent);
+}
+
 .h-icon { transition: background .2s, color .2s; }
 .h-icon:hover { filter: brightness(.92); }
 .h-body { flex: 1; min-width: 0; }
 .h-name {
   display: block;
-  font-size: 15px;
-  line-height: 20px;
+  font-size: 17px;
+  line-height: 22px;
   font-weight: 600;
-  letter-spacing: -.016em;
+  letter-spacing: -.024em;
   color: var(--label);
   transition: color .2s;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .h-meta {
   display: block;
-  font-size: 12.5px;
-  line-height: 17px;
+  font-size: 15px;
+  line-height: 20px;
+  letter-spacing: -.016em;
   color: var(--label-2);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .h-dist {
   flex: none;
   text-align: right;
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 590;
-  letter-spacing: -.012em;
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 400;
+  letter-spacing: -.024em;
   font-variant-numeric: tabular-nums;
   color: var(--label-2);
 }
