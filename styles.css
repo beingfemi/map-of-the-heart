@@ -651,6 +651,44 @@ html[data-theme="dark"] .segmented button.on { box-shadow: 0 1px 3px rgba(0, 0, 
 .h-remove.confirm:hover { background: #e0281e; color: #fff; }
 .h-remove svg { width: 13px; height: 13px; }
 
+/* ---------- edit mode ---------- */
+/* Deletion lives behind Edit, the way an iOS list does it: a red minus on the
+   left arms a row, and only a Remove button on the far right confirms. Two
+   targets on opposite sides, so no double-click can take someone off the map. */
+.linkbtn[hidden] { display: none; }
+.h-minus {
+  flex: none;
+  width: 22px; height: 22px;
+  display: grid; place-items: center;
+  border: 0; padding: 0;
+  border-radius: 50%;
+  background: #ff3b30;
+  cursor: pointer;
+  transition: transform .2s cubic-bezier(.2,.8,.2,1);
+}
+.h-minus span { width: 10px; height: 2px; border-radius: 1px; background: #fff; }
+.hearts li.confirming .h-minus { transform: rotate(-90deg); }
+.hearts li.editing { cursor: default; }
+.hearts li.editing:hover { background: transparent; }
+.hearts li.confirming,
+.hearts li.confirming:hover { background: color-mix(in srgb, #ff3b30 8%, transparent); border-radius: 10px; }
+.h-delete {
+  flex: none;
+  height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: #ff3b30;
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 590;
+  letter-spacing: -.012em;
+  cursor: pointer;
+  animation: rise .18s cubic-bezier(.2,.8,.2,1) backwards;
+}
+.h-delete:hover { background: #e0281e; }
+
 /* ---------- map markers ---------- */
 .mk { cursor: pointer; }
 .mk-you {

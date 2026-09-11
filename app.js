@@ -686,22 +686,17 @@ const toastEl = $('toast'), panel = $('panel');
 let mode = 'you';           // 'you' | 'them' | 'list'
 let pendingBond = DEFAULT_BOND;
 let collapsed = localStorage.getItem('moth.collapsed') === '1';
-let confirmingId = null;    // the row currently asking whether you meant it
-let confirmTimer;
+let editing = false;        // rows show a remove control only in Edit
+let confirmingId = null;    // the row armed for removal
 
-function askToRemove(id) {
-  clearTimeout(confirmTimer);
-  confirmingId = id;
-  render();
-  confirmTimer = setTimeout(() => {
-    if (confirmingId === null) return;
-    confirmingId = null;
-    render();
-  }, 4000);
-}
+function askToRemove(id) { confirmingId = id; render(); }
 function cancelRemove() {
   if (confirmingId === null) return;
-  clearTimeout(confirmTimer);
+  confirmingId = null;
+  render();
+}
+function setEditing(on) {
+  editing = !!on && state.hearts.length > 0;
   confirmingId = null;
   render();
 }
@@ -781,6 +776,12 @@ function render() {
   syncMarkers();
   state.hearts.forEach(h => { h._path = null; });
 
+  const editBtn = $('btnEdit');
+  if (!state.hearts.length) editing = false;
+  editBtn.hidden = !state.hearts.length || collapsed;
+  editBtn.textContent = editing ? 'Done' : 'Edit';
+  panel.classList.toggle('editing', editing);
+
   if (state.you) {
     homeLabel.textContent = state.you.label;
     homeSun.textContent = collapsed && state.hearts.length
@@ -794,49 +795,59 @@ function render() {
     const d = fmtDistance(km);
     const li = document.createElement('li');
     li.style.animationDelay = (i * 45) + 'ms';
+    const confirming = editing && confirmingId === h.id;
     li.innerHTML =
-      '<span class="h-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-8.5-5.3-8.5-11.1A4.9 4.9 0 0 1 12 6.6a4.9 4.9 0 0 1 8.5 3.3C20.5 15.7 12 21 12 21Z"/></svg></span>' +
+      (editing
+        ? '<button class="h-minus"><span></span></button>'
+        : '<span class="h-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-8.5-5.3-8.5-11.1A4.9 4.9 0 0 1 12 6.6a4.9 4.9 0 0 1 8.5 3.3C20.5 15.7 12 21 12 21Z"/></svg></span>') +
       '<span class="h-body"><span class="h-name"></span><span class="h-meta"></span></span>' +
-      '<span class="h-dist"></span>' +
-      '<button class="h-remove" title="Remove" aria-label="Remove"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>';
+      (confirming ? '<button class="h-delete">Remove</button>' : '<span class="h-dist"></span>');
     li.querySelector('.h-name').textContent = h.name || h.label;
     li.querySelector('.h-meta').textContent = h.label + ' · ' + skyGlyph(h.lat, h.lng);
-    const dist = li.querySelector('.h-dist');
-    dist.textContent = d.km;
-    dist.title = d.mi + ' · ' + compass(bearing([state.you.lng, state.you.lat], [h.lng, h.lat]));
-    const icon = li.querySelector('.h-icon');
-    const b = bondOf(h);
-    icon.style.color = b[theme];
-    icon.style.background = b.id === 'someone' ? '' : b[theme] + '24';
-    icon.title = b.label + ' — click to change';
-    icon.addEventListener('click', e => {
-      e.stopPropagation();
-      const next = BONDS[(BONDS.indexOf(bondOf(h)) + 1) % BONDS.length];
-      h.bond = next.id;
-      render();
-      toast(h.name + ' · ' + next.label);
-    });
-    li.addEventListener('click', () => {
-      if (confirmingId !== null) return cancelRemove();
-      focusHeart(h.id);
-    });
-    const rm = li.querySelector('.h-remove');
-    if (confirmingId === h.id) {
-      li.classList.add('confirming');
-      rm.classList.add('confirm');
-      rm.innerHTML = '';
-      rm.appendChild(document.createTextNode('Remove'));
-      rm.title = 'Remove ' + (h.name || 'this person');
+
+    if (!confirming) {
+      const dist = li.querySelector('.h-dist');
+      dist.textContent = d.km;
+      dist.title = d.mi + ' · ' + compass(bearing([state.you.lng, state.you.lat], [h.lng, h.lat]));
     }
-    rm.addEventListener('click', e => {
-      e.stopPropagation();
-      if (confirmingId !== h.id) return askToRemove(h.id);   // ask first
-      clearTimeout(confirmTimer);
-      confirmingId = null;
-      state.hearts = state.hearts.filter(x => x.id !== h.id);
-      save(); render();
-      toast(h.name + ' removed');
-      if (!state.hearts.length) setMode('them');
+
+    if (!editing) {
+      const icon = li.querySelector('.h-icon');
+      const b = bondOf(h);
+      icon.style.color = b[theme];
+      icon.style.background = b.id === 'someone' ? '' : b[theme] + '24';
+      icon.title = b.label + ' — click to change';
+      icon.addEventListener('click', e => {
+        e.stopPropagation();
+        const next = BONDS[(BONDS.indexOf(bondOf(h)) + 1) % BONDS.length];
+        h.bond = next.id;
+        render();
+        toast(h.name + ' · ' + next.label);
+      });
+    } else {
+      li.classList.add('editing');
+      const minus = li.querySelector('.h-minus');
+      minus.setAttribute('aria-label', 'Remove ' + (h.name || 'this person'));
+      minus.addEventListener('click', e => {
+        e.stopPropagation();
+        if (confirmingId === h.id) cancelRemove(); else askToRemove(h.id);
+      });
+      if (confirming) {
+        li.classList.add('confirming');
+        li.querySelector('.h-delete').addEventListener('click', e => {
+          e.stopPropagation();
+          confirmingId = null;
+          state.hearts = state.hearts.filter(x => x.id !== h.id);
+          save(); render();
+          toast(h.name + ' removed');
+          if (!state.hearts.length) setMode('them');
+        });
+      }
+    }
+
+    li.addEventListener('click', () => {
+      if (editing) return cancelRemove();   // in Edit, a row tap only disarms
+      focusHeart(h.id);
     });
     heartsList.appendChild(li);
   });
@@ -1053,6 +1064,7 @@ $('btnMoveHome').addEventListener('click', e => { e.stopPropagation(); youSearch
 $('btnCollapse').addEventListener('click', e => {
   e.stopPropagation();
   collapsed = !collapsed;
+  if (collapsed) { editing = false; confirmingId = null; }
   localStorage.setItem('moth.collapsed', collapsed ? '1' : '0');
   render();
 });
@@ -1191,7 +1203,11 @@ paintGrain();
   }, { passive: true });
 }
 
-addEventListener('keydown', e => { if (e.key === 'Escape') cancelRemove(); });
+addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (confirmingId !== null) cancelRemove(); else if (editing) setEditing(false);
+});
+$('btnEdit').addEventListener('click', e => { e.stopPropagation(); setEditing(!editing); });
 map.on('click', cancelRemove);
 
 /* ---------------------------------------------------------------- boot */
