@@ -277,7 +277,7 @@ html[data-appearance="dark"] #btnTheme .i-moon { display: block; }
   color: var(--label-3);
 }
 .title {
-  margin: 0 0 13px;
+  margin: 0 0 16px;
   font-size: 20px;
   line-height: 25px;
   font-weight: 600;
@@ -355,7 +355,7 @@ html[data-appearance="dark"] #btnTheme .i-moon { display: block; }
 
 /* ---------- bond picker ---------- */
 .seg-label {
-  margin: 14px 0 6px;
+  margin: 20px 0 8px;
   font-size: 13px;
   line-height: 18px;
   letter-spacing: -.006em;
@@ -552,6 +552,20 @@ html[data-theme="dark"] .segmented button.on { box-shadow: 0 1px 3px rgba(0, 0, 
 /* ---------- hearts list ---------- */
 /* the step fills the sheet, and only the list of people scrolls */
 .step { display: flex; flex-direction: column; min-height: 0; }
+/* Nothing in a step may shrink: the step is a flex column, and a field that
+   inherits flex:1 from the search row gets squashed below its 44pt height. */
+.step > * { flex: none; }
+.step > .searchbox + .searchbox { margin-top: 10px; }
+.step > .results { margin-top: 8px; }
+.step-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 20px;
+}
+.step-foot .hint { margin: 0; }
+.step-foot .ghost { height: 32px; padding: 0 14px; font-size: 15px; }
 .step[hidden] { display: none; }
 .hearts {
   list-style: none;

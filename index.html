@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#f7f4ef">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧭</text></svg>">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css">
-<link rel="stylesheet" href="styles.css?v=6">
+<link rel="stylesheet" href="styles.css?v=7">
 </head>
 <body>
 
@@ -73,7 +73,10 @@
   <div class="step" id="stepThem" hidden>
     <p class="eyebrow">Now</p>
     <h1 class="title">Who are you thinking of?</h1>
-    <input id="themName" class="nameinput" type="text" placeholder="Their name" autocomplete="off" maxlength="28">
+    <div class="searchbox">
+      <svg class="searchbox__icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8.5" r="3.6" stroke="currentColor" stroke-width="1.7"/><path d="M5.5 19.5c.9-3.2 3.5-5 6.5-5s5.6 1.8 6.5 5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      <input id="themName" type="text" placeholder="Their name" autocomplete="off" maxlength="28">
+    </div>
     <div class="searchbox">
       <svg class="searchbox__icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.4" stroke="currentColor" stroke-width="1.7"/><path d="m16 16 4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
       <input id="themSearch" type="text" placeholder="Where are they?" autocomplete="off" spellcheck="false">
@@ -81,10 +84,10 @@
     <ul class="results" id="themResults" hidden></ul>
     <p class="seg-label">What is the line between you?</p>
     <div class="segmented" id="bondPicker" role="radiogroup" aria-label="What is the line between you?"></div>
-    <div class="rowbtns">
+    <div class="step-foot">
+      <p class="hint">Or tap their place on the map.</p>
       <button class="ghost" id="themCancel" hidden>Cancel</button>
     </div>
-    <p class="hint">Or tap their place on the map.</p>
   </div>
 
   <!-- STEP: the map of connections -->
@@ -117,6 +120,6 @@
 <div class="toast glass" id="toast" role="status"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
-<script src="app.js?v=6"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>
